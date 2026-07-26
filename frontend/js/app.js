@@ -19,3 +19,7 @@ async function init() {
 }
 
 init();
+
+// iOS Safari only applies :active styles on tap if some element has a touch
+// listener attached; this empty listener exists solely to enable that.
+document.body.addEventListener('touchstart', function(){}, {passive: true});
