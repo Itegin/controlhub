@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from websockets import ConnectionClosed
 from websockets.asyncio.client import connect
 
+from handlers.process import handle_launch_app
+
 load_dotenv()
 
 SERVER_IP = os.environ["SERVER_IP"]
@@ -13,6 +15,8 @@ AGENT_TOKEN = os.environ["AGENT_TOKEN"]
 SERVER_URL = f"ws://{SERVER_IP}:8000/ws/agent"
 
 MAX_BACKOFF = 30
+
+HANDLERS = {"launch_app": handle_launch_app}
 
 
 async def run() -> None:
@@ -27,6 +31,29 @@ async def run() -> None:
 
         async for raw in ws:
             print(f"Received: {raw}")
+            message = json.loads(raw)
+
+            cmd = message.get("cmd")
+            if cmd is None:
+                continue
+
+            handler = HANDLERS.get(cmd)
+            if handler is None:
+                await ws.send(json.dumps({
+                    "type": "result",
+                    "req_id": message["req_id"],
+                    "status": "error",
+                    "message": f"unknown command: {cmd}",
+                }))
+                continue
+
+            result = handler(message["params"])
+            await ws.send(json.dumps({
+                "type": "result",
+                "req_id": message["req_id"],
+                "item_id": message.get("item_id"),
+                **result,
+            }))
 
 
 async def main() -> None:
