@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
 
-from app.db import fixup_legacy_seed, init_db, seed_if_empty
+from app.db import fixup_legacy_seed, fixup_mic_item, init_db, seed_if_empty
 from app.models import get_workspaces_with_items
 from app.ws.agent import agent_ws
 from app.ws.client import client_ws
@@ -28,6 +28,7 @@ def on_startup() -> None:
     init_db()
     seed_if_empty()
     fixup_legacy_seed()
+    fixup_mic_item()
 
 
 @app.get("/health")

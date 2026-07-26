@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 from websockets import ConnectionClosed
 from websockets.asyncio.client import connect
 
+from handlers.audio import handle_audio_mute_toggle
 from handlers.process import handle_launch_app
+from poller import poll_loop
 
 load_dotenv()
 
@@ -16,7 +18,38 @@ SERVER_URL = f"ws://{SERVER_IP}:8000/ws/agent"
 
 MAX_BACKOFF = 30
 
-HANDLERS = {"launch_app": handle_launch_app}
+HANDLERS = {
+    "launch_app": handle_launch_app,
+    "audio_mute_toggle": handle_audio_mute_toggle,
+}
+
+
+async def _receive_loop(ws) -> None:
+    async for raw in ws:
+        print(f"Received: {raw}")
+        message = json.loads(raw)
+
+        cmd = message.get("cmd")
+        if cmd is None:
+            continue
+
+        handler = HANDLERS.get(cmd)
+        if handler is None:
+            await ws.send(json.dumps({
+                "type": "result",
+                "req_id": message["req_id"],
+                "status": "error",
+                "message": f"unknown command: {cmd}",
+            }))
+            continue
+
+        result = handler(message["params"])
+        await ws.send(json.dumps({
+            "type": "result",
+            "req_id": message["req_id"],
+            "item_id": message.get("item_id"),
+            **result,
+        }))
 
 
 async def run() -> None:
@@ -29,31 +62,13 @@ async def run() -> None:
         }))
         print(f"Connected to {SERVER_URL}")
 
-        async for raw in ws:
-            print(f"Received: {raw}")
-            message = json.loads(raw)
+        async def send_state(snapshot: dict) -> None:
+            await ws.send(json.dumps({"type": "state", "data": snapshot}))
 
-            cmd = message.get("cmd")
-            if cmd is None:
-                continue
-
-            handler = HANDLERS.get(cmd)
-            if handler is None:
-                await ws.send(json.dumps({
-                    "type": "result",
-                    "req_id": message["req_id"],
-                    "status": "error",
-                    "message": f"unknown command: {cmd}",
-                }))
-                continue
-
-            result = handler(message["params"])
-            await ws.send(json.dumps({
-                "type": "result",
-                "req_id": message["req_id"],
-                "item_id": message.get("item_id"),
-                **result,
-            }))
+        # Both run for the lifetime of this connection; if either raises
+        # (e.g. the socket drops mid-send) gather propagates it up to main()'s
+        # reconnect loop, which tears down and retries the whole connection.
+        await asyncio.gather(_receive_loop(ws), poll_loop(send_state))
 
 
 async def main() -> None:

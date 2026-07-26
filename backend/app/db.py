@@ -110,3 +110,25 @@ def fixup_legacy_seed() -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+def fixup_mic_item() -> None:
+    # Same idempotent backfill approach as fixup_legacy_seed(): converts the
+    # placeholder 'Camera' row left by seed_if_empty into the real mic mute
+    # toggle action. No-op once the row already matches, safe every startup.
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            UPDATE item
+            SET label = 'Mic',
+                type = 'audio_mute_toggle',
+                target = 'windows',
+                params = '{"device":"microphone"}',
+                state_key = 'mic.muted'
+            WHERE label = 'Camera'
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()

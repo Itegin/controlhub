@@ -4,6 +4,7 @@ import logging
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.models import bump_press_count, get_item
+from app.state import get_state
 from app.ws.hub import hub
 
 logger = logging.getLogger("controlhub.ws")
@@ -13,6 +14,9 @@ async def client_ws(ws: WebSocket) -> None:
     await ws.accept()
     hub.register_client(ws)
     logger.info("Client connected")
+    # A newly connected client has missed every diff broadcast so far, so it
+    # needs the full state once up front before it can rely on diffs alone.
+    await ws.send_json({"type": "state", "data": get_state()})
 
     try:
         while True:
