@@ -1,4 +1,4 @@
-export function renderWorkspace(workspace) {
+export function renderWorkspace(workspace, onTileClick) {
   const grid = document.getElementById("grid");
 
   grid.style.setProperty("--cols", workspace.grid_cols);
@@ -19,6 +19,10 @@ export function renderWorkspace(workspace) {
     label.className = "label";
     label.textContent = item.label;
     tile.appendChild(label);
+
+    if (item.kind === "action") {
+      tile.addEventListener("click", () => onTileClick(item.id));
+    }
 
     grid.appendChild(tile);
   }

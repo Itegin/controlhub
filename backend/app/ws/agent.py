@@ -31,6 +31,8 @@ async def agent_ws(ws: WebSocket) -> None:
         while True:
             message = await ws.receive_json()
             logger.info("Agent '%s' sent: %s", name, message)
+            if message.get("type") == "result":
+                await hub.broadcast_to_clients(message)
     except WebSocketDisconnect:
         pass
     finally:

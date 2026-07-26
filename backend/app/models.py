@@ -53,3 +53,24 @@ def get_workspaces_with_items() -> list[dict]:
         {**dict(workspace_row), "items": items_by_workspace.get(workspace_row["id"], [])}
         for workspace_row in workspace_rows
     ]
+
+
+def get_item(item_id: int) -> Optional[dict]:
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM item WHERE id = ?", (item_id,)).fetchone()
+    finally:
+        conn.close()
+    return dict(row) if row is not None else None
+
+
+def bump_press_count(item_id: int) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            "UPDATE item SET press_count = press_count + 1, last_pressed = datetime('now') WHERE id = ?",
+            (item_id,),
+        )
+        conn.commit()
+    finally:
+        conn.close()

@@ -90,3 +90,23 @@ def seed_if_empty() -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+def fixup_legacy_seed() -> None:
+    # Not a one-time migration: seed_if_empty only fires once per fresh db, so
+    # early installs may already have a 'Terminal' row stuck with the old
+    # placeholder type/params. Re-running this UPDATE on every startup is the
+    # simplest way to backfill those installs; it's a no-op once the row
+    # already matches, so it's safe to keep calling forever.
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            UPDATE item
+            SET type = 'launch_app', params = '{"path":"notepad.exe"}'
+            WHERE label = 'Terminal'
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
