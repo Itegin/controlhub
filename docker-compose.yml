@@ -8,4 +8,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./frontend:/app/frontend
+    env_file:
+      -  .env
     restart: unless-stopped
