@@ -1,6 +1,6 @@
 ﻿# ControlHub
 
-Self-hosted touchscreen control panel that turns an old iPhone into a
-control deck for your PC and homelab.
+Self-hosted universal control surface that turns an old iPhone into a
+deck for your PC.
 
 **Status:** in development, v0.1
