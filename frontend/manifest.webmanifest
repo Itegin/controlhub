@@ -1,0 +1,14 @@
+{
+  "name": "ControlHub",
+  "short_name": "ControlHub",
+  "display": "standalone",
+  "background_color": "#0B0D10",
+  "theme_color": "#0B0D10",
+  "icons": [
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

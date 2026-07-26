@@ -1,0 +1,20 @@
+.tile {
+  background: var(--tile-color, #1A1F26);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: transform 120ms;
+  user-select: none;
+}
+
+.tile:active {
+  transform: scale(0.95);
+}
+
+.tile .label {
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+}
