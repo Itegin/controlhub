@@ -1,9 +1,8 @@
-_current_state: dict = {}
+_current_state = {}
 
 
 def update_state(data: dict) -> dict:
-    # Only return keys that actually changed value so callers can broadcast a
-    # minimal diff instead of re-sending the whole state on every heartbeat.
+    """Updates internal state and returns only keys that actually changed."""
     changed = {}
     for key, value in data.items():
         if _current_state.get(key) != value:
@@ -13,4 +12,5 @@ def update_state(data: dict) -> dict:
 
 
 def get_state() -> dict:
-    return dict(_current_state)
+    """Returns a copy of the current state snapshot."""
+    return _current_state.copy()

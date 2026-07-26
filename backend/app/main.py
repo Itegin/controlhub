@@ -1,10 +1,13 @@
 import logging
 
-# app loggers are silent under uvicorn without this
+# Without force=True, uvicorn's own dictConfig (which sets
+# disable_existing_loggers) wins and app loggers stay silent.
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+    format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+    force=True,
 )
+logging.getLogger("controlhub").setLevel(logging.INFO)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket
