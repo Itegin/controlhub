@@ -18,8 +18,8 @@ echo "      HEAD: $(git log -1 --oneline)"
 echo; echo "КОНТЕЙНЕР"
 if [ -n "$(docker compose ps -q backend 2>/dev/null)" ] && docker compose exec -T backend true 2>/dev/null; then
     y "Запущен"
-    DISK=$(cd backend && find app -name '*.py' | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-    CONT=$(docker compose exec -T backend sh -c 'find app -name "*.py" | sort | xargs md5sum | md5sum' 2>/dev/null | cut -d' ' -f1)
+    DISK=$(cd backend && find app -name '*.py' | LC_ALL=C sort | xargs md5sum | md5sum | cut -d' ' -f1)
+    CONT=$(docker compose exec -T backend sh -c 'find app -name "*.py" | LC_ALL=C sort | xargs md5sum | md5sum' 2>/dev/null | cut -d' ' -f1)
     [ "$DISK" = "$CONT" ] && y "Код внутри совпадает с диском" || n "Код внутри УСТАРЕЛ — запусти ./deploy.sh"
 else
     n "Не запущен — docker compose up -d"

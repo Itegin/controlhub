@@ -40,8 +40,8 @@ for i in $(seq 1 20); do
 done
 
 step "5/5 Сверяю код в контейнере с диском"
-DISK=$(cd backend && find app -name '*.py' | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-CONT=$(docker compose exec -T backend sh -c 'find app -name "*.py" | sort | xargs md5sum | md5sum' | cut -d' ' -f1)
+DISK=$(cd backend && find app -name '*.py' | LC_ALL=C sort | xargs md5sum | md5sum | cut -d' ' -f1)
+CONT=$(docker compose exec -T backend sh -c 'find app -name "*.py" | LC_ALL=C sort | xargs md5sum | md5sum' | cut -d' ' -f1)
 [ "$DISK" = "$CONT" ] || fail "Код в контейнере УСТАРЕЛ. Попробуй: docker compose build --no-cache && docker compose up -d"
 ok "Код в контейнере актуален"
 
