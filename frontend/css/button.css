@@ -5,7 +5,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transition: transform 120ms, background-color 200ms ease, color 200ms ease;
+  transition: transform 120ms, background-color 200ms ease, color 200ms ease, filter 80ms ease;
   user-select: none;
   /* Disables iOS's native double-tap-zoom and, critically, narrows what
      gestures the browser considers on a touch here -- without this, iOS's
@@ -20,7 +20,14 @@
 }
 
 .tile:active {
+  /* brightness(1.15) uses the tile's own current color -- whatever
+     state it's in (idle, state-active teal, state-alert red) -- so it
+     composes with those classes instead of overriding background-color.
+     Kept in the same block as the Day 1 scale transform so both press
+     effects (shrink + brighten) apply together, not as two competing
+     :active rules. */
   transform: scale(0.95);
+  filter: brightness(1.15);
 }
 
 .tile .label {
