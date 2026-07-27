@@ -19,6 +19,7 @@ from app.db import (
     fixup_legacy_seed,
     fixup_mic_item,
     fixup_volume_item,
+    fixup_vpn_item,
     init_db,
     seed_if_empty,
 )
@@ -44,6 +45,7 @@ def on_startup() -> None:
     # Must run after fixup_volume_item(): it places Headphones in the grid
     # cell that Volume's move vacates, so the ordering here is load-bearing.
     fixup_day4_items()
+    fixup_vpn_item()
 
 
 @app.get("/health")

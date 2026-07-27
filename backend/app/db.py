@@ -214,3 +214,31 @@ def fixup_day4_items() -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+def fixup_vpn_item() -> None:
+    # Same insert-if-missing idempotency as fixup_day4_items(). Placement
+    # is (row=3, col=1): the originally proposed (row=3, col=0) collides
+    # with 'Screenshot', which fixup_day4_items() already put there --
+    # verified against a scratch DB before writing this, not assumed.
+    #
+    # workspace_id is hardcoded to 1 here (unlike fixup_day4_items()'s
+    # dynamic `SELECT id FROM workspace`) -- confirmed safe against the
+    # same scratch DB (this app has only ever had the one seeded
+    # workspace, which gets id=1), but it's worth knowing this fixup
+    # would silently insert against the wrong workspace if that ever
+    # changes, where fixup_day4_items() would not.
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO item (workspace_id, row, col, width, height, label, icon,
+                color, kind, type, target, params, state_key)
+            SELECT 1, 3, 1, 1, 1, 'VPN', 'shield', '#0d9488', 'action',
+                'process_toggle', 'windows', '{"active_style":"normal"}', 'vpn.running'
+            WHERE NOT EXISTS (SELECT 1 FROM item WHERE label='VPN')
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
