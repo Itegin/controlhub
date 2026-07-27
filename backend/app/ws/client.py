@@ -13,13 +13,17 @@ logger = logging.getLogger("controlhub.ws")
 
 async def client_ws(ws: WebSocket) -> None:
     await ws.accept()
-    hub.register_client(ws)
-    logger.info("Client connected")
-    # A newly connected client has missed every diff broadcast so far, so it
-    # needs the full state once up front before it can rely on diffs alone.
-    await ws.send_json({"type": "state", "data": get_state()})
 
     try:
+        # Registered as the first line inside try/finally so a failure
+        # anywhere below -- including the initial state push failing before
+        # the loop even starts -- still guarantees unregister_client runs.
+        hub.register_client(ws)
+        logger.info("Client connected")
+        # A newly connected client has missed every diff broadcast so far, so it
+        # needs the full state once up front before it can rely on diffs alone.
+        await ws.send_json({"type": "state", "data": get_state()})
+
         while True:
             message = await ws.receive_json()
             logger.info("Client sent: %s", message)

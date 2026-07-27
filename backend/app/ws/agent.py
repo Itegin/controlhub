@@ -33,7 +33,6 @@ async def agent_ws(ws: WebSocket) -> None:
     try:
         while True:
             message = await ws.receive_json()
-            logger.info("Agent raw message: %s", message)  # TODO: remove once state polling confirmed working end to end
             logger.info("Agent '%s' sent: %s", name, message)
             if message.get("type") == "result":
                 # Cancel the pending timeout before broadcasting: a real
