@@ -1,0 +1,57 @@
+.context-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 13, 16, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 150ms;
+  pointer-events: none;
+}
+
+.context-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.context-panel {
+  background: #1A1F26;
+  color: #F1F5F9;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+.context-header {
+  padding: 16px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #9aa3b2;
+  text-align: center;
+  border-bottom: 1px solid #2a2f38;
+}
+
+.context-row {
+  display: block;
+  width: 100%;
+  height: 56px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #2a2f38;
+  color: #F1F5F9;
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.context-row:last-child {
+  border-bottom: none;
+}
+
+.context-row.destructive {
+  color: #dc2626;
+}

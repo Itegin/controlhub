@@ -7,7 +7,7 @@ from websockets import ConnectionClosed
 from websockets.asyncio.client import connect
 
 from handlers.audio import handle_audio_mute_toggle, handle_audio_switch, handle_audio_volume_set
-from handlers.process import handle_launch_app, handle_process_toggle
+from handlers.process import handle_force_stop, handle_launch_app, handle_process_toggle
 from handlers.screenshot import handle_screenshot
 from poller import poll_loop
 
@@ -32,6 +32,7 @@ HANDLERS = {
     "audio_switch": handle_audio_switch,
     "screenshot": handle_screenshot,
     "process_toggle": handle_process_toggle,
+    "force_stop": handle_force_stop,
 }
 
 
@@ -54,7 +55,14 @@ async def _receive_loop(ws) -> None:
             }))
             continue
 
-        result = handler(message["params"])
+        # force_stop is the one handler that needs more than its own
+        # params: it derives a process name from the ORIGINAL item's type
+        # (see handle_force_stop), which backend/app/ws/client.py sends
+        # alongside the (possibly overridden) cmd specifically for this.
+        if cmd == "force_stop":
+            result = handler(message["params"], message.get("item_type"))
+        else:
+            result = handler(message["params"])
         await ws.send(json.dumps({
             "type": "result",
             "req_id": message["req_id"],

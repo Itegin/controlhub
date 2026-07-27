@@ -16,6 +16,15 @@ body {
   padding-right: env(safe-area-inset-right);
   -webkit-tap-highlight-color: transparent;
   min-height: 100vh;
+  /* Stops the whole page from rubber-banding when a finger drags past
+     the top/bottom edge. */
+  overscroll-behavior: none;
+  /* Stops text selection on long-press. */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Stops Safari's "Copy/Look Up" menu on long-press -- this is the one
+     that would otherwise fight directly with the Long Press feature. */
+  -webkit-touch-callout: none;
 }
 
 #workspace-header {

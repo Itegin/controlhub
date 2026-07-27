@@ -1,3 +1,5 @@
+import { attachLongPress } from "./longpress.js";
+
 const SLIDER_THROTTLE_MS = 100;
 
 // Literal, module-authored SVG markup only -- never build a key from
@@ -15,7 +17,7 @@ const ICONS = {
   camera: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>`,
 };
 
-export function renderWorkspace(workspace, onTileClick, onSliderChange) {
+export function renderWorkspace(workspace, onTileClick, onSliderChange, onTileLongPress) {
   const grid = document.getElementById("grid");
 
   grid.style.setProperty("--cols", workspace.grid_cols);
@@ -61,9 +63,13 @@ export function renderWorkspace(workspace, onTileClick, onSliderChange) {
     tile.appendChild(label);
 
     if (isSlider) {
+      // Sliders own their pointerdown/move/up stream via
+      // attachSliderHandlers above; attaching long-press's independent
+      // pointer listeners to the same element would double-handle every
+      // event, so only non-slider action tiles get long-press.
       attachSliderHandlers(tile, item, onSliderChange);
     } else if (item.kind === "action") {
-      tile.addEventListener("click", () => onTileClick(item.id));
+      attachLongPress(tile, () => onTileLongPress(item), () => onTileClick(item.id));
     }
 
     grid.appendChild(tile);

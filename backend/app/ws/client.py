@@ -66,10 +66,21 @@ async def _handle_execute(message: dict) -> None:
         )
         return
 
+    # override_type lets Long Press's Force Stop menu option send a
+    # different command than a normal tap on the same tile, without
+    # duplicating a second DB row per action -- params and target still
+    # always come from the item row itself.
+    override_type = message.get("override_type")
+
     await hub.send_to_agent(
         item["target"],
         {
-            "cmd": item["type"],
+            "cmd": override_type or item["type"],
+            # Always the item's own type, even when overridden -- force_stop
+            # needs this to derive a process name from the original item's
+            # params (see handle_force_stop), since params alone don't say
+            # whether "path" means a launch_app or something else.
+            "item_type": item["type"],
             "params": json.loads(item["params"]),
             "req_id": req_id,
             "item_id": item_id,

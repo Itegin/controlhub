@@ -56,17 +56,22 @@ function generateReqId() {
   return Date.now() + "-" + Math.random().toString(36).slice(2);
 }
 
-export function sendExecute(itemId) {
+export function sendExecute(itemId, { overrideType } = {}) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     return;
   }
-  socket.send(
-    JSON.stringify({
-      cmd: "execute",
-      item_id: itemId,
-      req_id: generateReqId(),
-    })
-  );
+  const message = {
+    cmd: "execute",
+    item_id: itemId,
+    req_id: generateReqId(),
+  };
+  // Only set for Long Press's Force Stop menu option, which needs a
+  // different agent command than a normal tap on the same tile -- see
+  // backend/app/ws/client.py's _handle_execute for how this is consumed.
+  if (overrideType) {
+    message.override_type = overrideType;
+  }
+  socket.send(JSON.stringify(message));
 }
 
 export function sendSetValue(itemId, value) {

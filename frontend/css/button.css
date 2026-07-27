@@ -7,6 +7,16 @@
   align-items: center;
   transition: transform 120ms, background-color 200ms ease, color 200ms ease;
   user-select: none;
+  /* Disables iOS's native double-tap-zoom and, critically, narrows what
+     gestures the browser considers on a touch here -- without this, iOS's
+     own long-press (text selection/magnifier) gesture recognizer competes
+     with, and can win against, attachLongPress's pointer-timer logic for
+     the same touch sequence. touch-action: none (like .tile-slider below)
+     would also work but additionally blocks the page-level scroll/pan
+     iOS uses to dismiss things; manipulation is the narrower fix. */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .tile:active {
@@ -17,6 +27,10 @@
   font-size: 17px;
   font-weight: 600;
   text-align: center;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .tile .icon {

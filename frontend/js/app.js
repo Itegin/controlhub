@@ -1,6 +1,21 @@
 import { fetchWorkspaces } from "./api.js";
 import { renderWorkspace, renderError, setWorkspaceName, updateTileState, setAgentOffline } from "./render.js";
 import { sendExecute, sendSetValue, onResult, onStateChange, onAgentStatus, onWorkspaceUpdate } from "./ws.js";
+import { showContextMenu } from "./contextmenu.js";
+
+function handleTileLongPress(item) {
+  showContextMenu(item, [
+    {
+      label: "Force Stop",
+      destructive: true,
+      action: () => sendExecute(item.id, { overrideType: "force_stop" }),
+    },
+    {
+      label: "Cancel",
+      action: () => {},
+    },
+  ]);
+}
 
 async function init() {
   try {
@@ -13,7 +28,7 @@ async function init() {
     }
 
     setWorkspaceName(workspace.name);
-    renderWorkspace(workspace, sendExecute, sendSetValue);
+    renderWorkspace(workspace, sendExecute, sendSetValue, handleTileLongPress);
   } catch (err) {
     renderError("Failed to load");
   }

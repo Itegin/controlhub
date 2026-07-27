@@ -41,6 +41,37 @@ def handle_launch_app(params: dict) -> dict:
         return {"status": "error", "message": str(e)}
 
 
+def handle_force_stop(params: dict, item_type: str | None = None) -> dict:
+    try:
+        process_name = params.get("process_name")
+
+        # Deriving from the original item's own type/params instead of
+        # requiring a dedicated stored field means force-stop works
+        # immediately on every existing item, with zero manual data entry
+        # via Studio Mode.
+        if process_name is None:
+            if item_type == "launch_app" and params.get("path"):
+                process_name = os.path.basename(params["path"])
+            elif item_type == "process_toggle":
+                # Same env lookup handle_process_toggle uses -- read here,
+                # not at module level, for the same load_dotenv() ordering
+                # reason as handle_process_toggle below.
+                process_name = os.environ["VPN_PROCESS_NAME"]
+            else:
+                return {
+                    "status": "error",
+                    "message": "no process identifiable for force stop on this item type",
+                }
+
+        # kill_process() is already a no-op if nothing matches, so this is
+        # idempotent by construction -- "ok" regardless of whether anything
+        # was actually running.
+        kill_process(process_name)
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 def handle_process_toggle(params: dict) -> dict:
     try:
         # Read here, not at module level: agent.py imports handlers before
