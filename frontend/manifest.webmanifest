@@ -1,12 +1,12 @@
 {
-  "name": "ControlHub",
-  "short_name": "ControlHub",
+  "name": "IT-Deck",
+  "short_name": "IT-Deck",
   "display": "standalone",
   "background_color": "#0B0D10",
   "theme_color": "#0B0D10",
   "icons": [
     {
-      "src": "/icons/apple-touch-icon.png",
+      "src": "/icons/it%20deck%20%D0%BB%D0%BE%D0%B3%D0%BE%20180%D0%BD%D0%B0180.png",
       "sizes": "180x180",
       "type": "image/png"
     }

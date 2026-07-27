@@ -1,4 +1,4 @@
-# ControlHub
+# IT-Deck
 
 Self-hosted universal control surface that turns an old iPhone into a deck
 for your PC. Single-user, single-process app — no multi-tenancy, no auth

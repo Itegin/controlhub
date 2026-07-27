@@ -5,7 +5,7 @@ y() { echo -e "  ${G}✓${N} $1"; }
 n() { echo -e "  ${R}✗${N} $1"; }
 w() { echo -e "  ${Y}?${N} $1"; }
 
-echo; echo "═══ ControlHub — состояние системы ═══"; echo
+echo; echo "═══ IT-Deck — состояние системы ═══"; echo
 
 echo "GIT"
 git fetch origin -q 2>/dev/null
