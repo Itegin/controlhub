@@ -3,6 +3,8 @@ const MAX_BACKOFF = 30000;
 let socket = null;
 let backoff = 1000;
 const resultCallbacks = [];
+const stateChangeCallbacks = [];
+const agentStatusCallbacks = [];
 
 function connect() {
   socket = new WebSocket(`ws://${location.host}/ws/client`);
@@ -18,6 +20,14 @@ function connect() {
     if (message.type === "result") {
       for (const callback of resultCallbacks) {
         callback(message);
+      }
+    } else if (message.type === "state") {
+      for (const callback of stateChangeCallbacks) {
+        callback(message.data);
+      }
+    } else if (message.type === "agent_status") {
+      for (const callback of agentStatusCallbacks) {
+        callback({ agent: message.agent, status: message.status });
       }
     }
   });
@@ -56,4 +66,12 @@ export function sendExecute(itemId) {
 
 export function onResult(callback) {
   resultCallbacks.push(callback);
+}
+
+export function onStateChange(callback) {
+  stateChangeCallbacks.push(callback);
+}
+
+export function onAgentStatus(callback) {
+  agentStatusCallbacks.push(callback);
 }

@@ -5,7 +5,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transition: transform 120ms;
+  transition: transform 120ms, background-color 200ms ease, color 200ms ease;
   user-select: none;
 }
 
@@ -17,4 +17,25 @@
   font-size: 17px;
   font-weight: 600;
   text-align: center;
+}
+
+.tile.state-active {
+  background-color: #0d9488;
+}
+
+/* See the "mic" prefix convention in render.js's updateTileState -- a muted
+   mic should read as an alert (red), not a neutral "on" (teal). */
+.tile.state-alert {
+  background-color: #dc2626;
+}
+
+/* Offline means "we don't know", not "it's inactive" -- it must never look
+   like a confident state. grayscale(1) desaturates whatever state-active
+   or state-alert color is currently applied (so the override doesn't need
+   to out-specificity those classes' background-color), and opacity + a
+   disabled pointer-events keep it visually and functionally inert. */
+.tile.tile-offline {
+  opacity: 0.4;
+  filter: grayscale(1);
+  pointer-events: none;
 }
