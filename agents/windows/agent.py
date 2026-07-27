@@ -6,21 +6,31 @@ from dotenv import load_dotenv
 from websockets import ConnectionClosed
 from websockets.asyncio.client import connect
 
-from handlers.audio import handle_audio_mute_toggle
+from handlers.audio import handle_audio_mute_toggle, handle_audio_switch, handle_audio_volume_set
 from handlers.process import handle_launch_app
+from handlers.screenshot import handle_screenshot
 from poller import poll_loop
 
 load_dotenv()
 
 SERVER_IP = os.environ["SERVER_IP"]
 AGENT_TOKEN = os.environ["AGENT_TOKEN"]
-SERVER_URL = f"ws://{SERVER_IP}:8000/ws/agent"
+# Previously hardcoded 8000 here -- SERVER_PORT was documented in
+# .env.example but never actually read anywhere, in violation of
+# CLAUDE.md's own "SERVER_PORT must be read from .env, never hardcoded"
+# constraint. Fixed here since the screenshot upload below needs the same
+# value and must not become a second hardcoded copy of it.
+SERVER_PORT = os.environ.get("SERVER_PORT", "8000")
+SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}/ws/agent"
 
 MAX_BACKOFF = 30
 
 HANDLERS = {
     "launch_app": handle_launch_app,
     "audio_mute_toggle": handle_audio_mute_toggle,
+    "audio_volume_set": handle_audio_volume_set,
+    "audio_switch": handle_audio_switch,
+    "screenshot": handle_screenshot,
 }
 
 

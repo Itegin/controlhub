@@ -2,3 +2,5 @@ websockets==13.1
 python-dotenv==1.0.1
 pycaw==20240210
 comtypes==1.2.1
+mss==10.2.0
+requests==2.32.3

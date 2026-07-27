@@ -13,7 +13,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
 
-from app.db import fixup_legacy_seed, fixup_mic_item, init_db, seed_if_empty
+from app.api.screenshot import router as screenshot_router
+from app.db import (
+    fixup_day4_items,
+    fixup_legacy_seed,
+    fixup_mic_item,
+    fixup_volume_item,
+    init_db,
+    seed_if_empty,
+)
 from app.models import get_workspaces_with_items
 from app.ws.agent import agent_ws
 from app.ws.client import client_ws
@@ -32,6 +40,10 @@ def on_startup() -> None:
     seed_if_empty()
     fixup_legacy_seed()
     fixup_mic_item()
+    fixup_volume_item()
+    # Must run after fixup_volume_item(): it places Headphones in the grid
+    # cell that Volume's move vacates, so the ordering here is load-bearing.
+    fixup_day4_items()
 
 
 @app.get("/health")
@@ -52,6 +64,9 @@ async def ws_agent(ws: WebSocket) -> None:
 @app.websocket("/ws/client")
 async def ws_client(ws: WebSocket) -> None:
     await client_ws(ws)
+
+
+app.include_router(screenshot_router)
 
 
 # Starlette matches routes in registration order, so a catch-all mount at "/"

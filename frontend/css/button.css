@@ -19,14 +19,54 @@
   text-align: center;
 }
 
+.tile .icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 6px;
+}
+
+.tile .icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 .tile.state-active {
   background-color: #0d9488;
 }
 
-/* See the "mic" prefix convention in render.js's updateTileState -- a muted
-   mic should read as an alert (red), not a neutral "on" (teal). */
+/* Which class an item uses (teal "active" vs red "alert") is decided per
+   item by render.js reading item.params.active_style -- see renderWorkspace. */
 .tile.state-alert {
   background-color: #dc2626;
+}
+
+.tile-slider {
+  position: relative;
+  /* Clips the fill-bar to the tile's own rounded corners instead of giving
+     the bar's moving right edge its own (visually odd) rounded corners. */
+  overflow: hidden;
+  /* Without this, iOS treats a horizontal drag on the tile as a page pan
+     and pointermove never fires with useful deltas. */
+  touch-action: none;
+}
+
+.tile-slider .fill-bar {
+  position: absolute;
+  inset: 0;
+  width: var(--fill-percent, 0%);
+  background-color: #0d9488;
+  transition: width 200ms ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Both sit in normal flow above the absolutely-positioned, z-index:0
+   fill-bar -- without this they'd still render visually on top (later in
+   DOM order), but pinning it explicitly avoids relying on that ordering. */
+.tile-slider .label,
+.tile-slider .icon {
+  position: relative;
+  z-index: 1;
 }
 
 /* Offline means "we don't know", not "it's inactive" -- it must never look

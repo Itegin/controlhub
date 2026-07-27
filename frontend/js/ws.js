@@ -64,6 +64,20 @@ export function sendExecute(itemId) {
   );
 }
 
+export function sendSetValue(itemId, value) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    return;
+  }
+  socket.send(
+    JSON.stringify({
+      cmd: "set_value",
+      item_id: itemId,
+      value,
+      req_id: generateReqId(),
+    })
+  );
+}
+
 export function onResult(callback) {
   resultCallbacks.push(callback);
 }

@@ -124,11 +124,93 @@ def fixup_mic_item() -> None:
             SET label = 'Mic',
                 type = 'audio_mute_toggle',
                 target = 'windows',
-                params = '{"device":"microphone"}',
+                params = '{"device":"microphone","active_style":"alert"}',
                 state_key = 'mic.muted'
             WHERE label = 'Camera'
             """
         )
+        # The UPDATE above only ever matches once -- the label flips away
+        # from 'Camera' on the first run, so installs that already migrated
+        # past it (before active_style existed) would never pick it up from
+        # that statement alone. Backfill it separately, keyed on the label
+        # the row actually settles into.
+        conn.execute(
+            """
+            UPDATE item
+            SET params = '{"device":"microphone","active_style":"alert"}',
+                icon = 'mic'
+            WHERE label = 'Mic'
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def fixup_volume_item() -> None:
+    # Unlike Camera -> Mic, 'Volume' keeps its label across every run, so
+    # this UPDATE matches (and reapplies identical values) on every startup
+    # forever -- same always-on pattern as fixup_legacy_seed()'s 'Terminal'
+    # match, not the one-shot pattern above. Harmless, but it also means a
+    # manual DB edit to this row's columns won't survive a restart.
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            UPDATE item
+            SET type = 'audio_volume_set',
+                target = 'windows',
+                params = '{"device":"speaker","active_style":"normal"}',
+                state_key = 'speaker.volume',
+                width = 2,
+                row = 2,
+                col = 0
+            WHERE label = 'Volume'
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def fixup_day4_items() -> None:
+    # Unlike the UPDATE-based fixups above, these are brand-new rows with no
+    # earlier placeholder to rename -- idempotency here means "insert only
+    # if a row with this label doesn't already exist yet", checked per item
+    # rather than via a single WHERE clause.
+    #
+    # Placement assumes fixup_volume_item() has already run in this same
+    # startup and moved 'Volume' to (row=2, col=0, width=2): Headphones
+    # takes the row1/col2 cell that move vacates. Must run after it in
+    # main.py's startup sequence, or the two fixups briefly disagree about
+    # who owns that cell.
+    conn = get_connection()
+    try:
+        (workspace_id,) = conn.execute(
+            "SELECT id FROM workspace ORDER BY position LIMIT 1"
+        ).fetchone()
+
+        # row, col, width, label, icon, kind, type, target, params, state_key
+        new_items = [
+            (1, 2, 1, "Headphones", "headphones", "action", "audio_mute_toggle",
+             "windows", '{"device":"speaker","active_style":"alert"}', "speaker.muted"),
+            (2, 2, 1, "Audio Switch", "audio-switch", "action", "audio_switch",
+             "windows", "{}", None),
+            (3, 0, 1, "Screenshot", "camera", "action", "screenshot",
+             "windows", "{}", None),
+        ]
+        for row, col, width, label, icon, kind, type_, target, params, state_key in new_items:
+            exists = conn.execute("SELECT 1 FROM item WHERE label = ?", (label,)).fetchone()
+            if exists:
+                continue
+            conn.execute(
+                """
+                INSERT INTO item
+                    (workspace_id, row, col, width, label, icon, kind, type, target, params, state_key)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (workspace_id, row, col, width, label, icon, kind, type_, target, params, state_key),
+            )
         conn.commit()
     finally:
         conn.close()
