@@ -4,6 +4,11 @@ Self-hosted universal control surface that turns an old iPhone into a deck
 for your PC. Single-user, single-process app — no multi-tenancy, no auth
 beyond the agent token.
 
+Public name: **IT-Deck**. Internal identifiers — the repo folder, logging
+namespaces (`controlhub`, `controlhub.api`, `controlhub.ws`), and the
+SQLite filename (`controlhub.db`) — intentionally remain `controlhub`;
+this is a deliberate decision from the rebrand, not an incomplete rename.
+
 ## Architecture
 
 Three pieces, one persistent WebSocket each:
@@ -104,6 +109,16 @@ today's `execute`-only shape covers it.
 - iOS Safari applies :active only if a touch listener exists somewhere on the page (empty touchstart on document.body). Verify this is present in app.js before assuming CSS :active rules will work on iPhone.
 - Every execute command must resolve within 5s: ok, error, or timeout. A req_id that never gets a matching result is a bug, not an edge case.
 - SERVER_PORT must be read from .env, never hardcoded.
+
+## Commands
+
+- `./deploy.sh` rebuilds and redeploys the Debian backend container only —
+  it pulls, rebuilds, and verifies `backend/`; it has no effect on the
+  Windows agent process. After any change to `agents/windows/`, manually
+  restart the running `agent.py` (Ctrl+C, then `python agent.py` again).
+  It's a separate, long-running process — a stale agent silently keeps
+  running old code with no error until something like a handler bug that
+  should've been fixed surfaces live.
 
 ## Known limitations
 
