@@ -44,6 +44,16 @@ frontend/
 └── css/           base.css, grid.css, button.css
 ```
 
+The frontend serves two separate pages from the same static mount, split
+by what they're allowed to do to the item catalog: **Dashboard**
+(`index.html`) is the phone-facing surface — it reads `/api/workspaces`
+and sends `execute`/`set_value` over `/ws/client`, but never calls
+`POST`/`PUT`/`DELETE` on `/api/items`. **Studio** (`studio.html` +
+`js/studio.js`) is the desktop-only admin page and the only place that
+mutates the item catalog through those three verbs. Every `/api/items`
+request — including `GET` — requires the `X-Agent-Token` header (see
+Known limitations); `/api/workspaces` itself stays unauthenticated.
+
 ## Message shapes
 
 **Client → backend** (`/ws/client`): `{"cmd": "execute", "item_id", "req_id"}`.
@@ -97,8 +107,10 @@ today's `execute`-only shape covers it.
 
 ## Known limitations
 
-- `POST /api/screenshot` is gated by the same `AGENT_TOKEN` shared secret
-  the WebSocket agent connection uses (an `X-Agent-Token` header check),
-  not a real auth system -- no per-caller identity, no expiry, no rate
-  limiting. Sufficient for this project's documented single-user,
-  local-network scope; revisit if that scope ever changes.
+- `POST /api/screenshot` and all four `/api/items` endpoints (including
+  `GET`) are gated by the same `AGENT_TOKEN` shared secret the WebSocket
+  agent connection uses (an `X-Agent-Token` header check), not a real
+  auth system -- no per-caller identity, no expiry, no rate limiting.
+  Sufficient for this project's documented single-user, local-network
+  scope; revisit if that scope ever changes. `/api/workspaces` remains
+  unauthenticated.

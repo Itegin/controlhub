@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IT-Deck Studio</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <style>
+    /* Desktop-only admin page, not part of the phone PWA -- kept as one
+       self-contained file rather than a shared stylesheet since nothing
+       else uses these rules. */
+    body {
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    header a {
+      color: #8e5ff5;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid #2a2f38;
+      font-size: 14px;
+    }
+
+    th {
+      color: #9aa3b2;
+      font-weight: 600;
+    }
+
+    button {
+      background: #1A1F26;
+      color: #F1F5F9;
+      border: 1px solid #2a2f38;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    button:hover {
+      background: #2a2f38;
+    }
+
+    button.danger:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+    }
+
+    #new-item-btn {
+      margin-bottom: 16px;
+    }
+
+    #item-form {
+      background: #1A1F26;
+      border: 1px solid #2a2f38;
+      border-radius: 10px;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    #item-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      color: #9aa3b2;
+    }
+
+    #item-form input,
+    #item-form select,
+    #item-form textarea {
+      background: #0B0D10;
+      color: #F1F5F9;
+      border: 1px solid #2a2f38;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    #item-form input[type="color"] {
+      padding: 2px;
+      height: 36px;
+    }
+
+    #field-params {
+      grid-column: 1 / -1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    #params-error {
+      grid-column: 1 / -1;
+      color: #dc2626;
+      font-size: 13px;
+    }
+
+    #item-form .form-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>IT-Deck Studio</h1>
+    <a href="/index.html">&larr; Dashboard</a>
+  </header>
+
+  <button id="new-item-btn" type="button">+ New Item</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Label</th>
+        <th>Type</th>
+        <th>Target</th>
+        <th>Position</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="items-tbody"></tbody>
+  </table>
+
+  <form id="item-form" hidden>
+    <input type="hidden" id="field-id">
+    <input type="hidden" id="field-workspace-id">
+
+    <label>Label
+      <input id="field-label" required>
+    </label>
+
+    <label>Icon
+      <input id="field-icon" placeholder="e.g. lightbulb">
+    </label>
+
+    <label>Color
+      <input type="color" id="field-color" value="#2a2f38">
+    </label>
+
+    <label>Kind
+      <select id="field-kind">
+        <option value="action">action</option>
+        <option value="widget">widget</option>
+      </select>
+    </label>
+
+    <label>Type
+      <input id="field-type" required placeholder="e.g. audio_mute_toggle">
+    </label>
+
+    <label>Target
+      <select id="field-target">
+        <option value="windows">windows</option>
+        <option value="backend">backend</option>
+      </select>
+    </label>
+
+    <label>State key
+      <input id="field-state-key" placeholder="optional, e.g. mic.muted">
+    </label>
+
+    <label>Row
+      <input type="number" id="field-row" required>
+    </label>
+
+    <label>Col
+      <input type="number" id="field-col" required>
+    </label>
+
+    <label>Width
+      <input type="number" id="field-width" value="1" min="1">
+    </label>
+
+    <label>Height
+      <input type="number" id="field-height" value="1" min="1">
+    </label>
+
+    <label>Params (JSON)
+      <textarea id="field-params">{}</textarea>
+    </label>
+    <div id="params-error" hidden></div>
+
+    <div class="form-actions">
+      <button type="submit" id="save-btn">Save</button>
+      <button type="button" id="cancel-btn">Cancel</button>
+    </div>
+  </form>
+
+  <script type="module" src="/js/studio.js"></script>
+</body>
+</html>

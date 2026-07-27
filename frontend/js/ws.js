@@ -5,6 +5,7 @@ let backoff = 1000;
 const resultCallbacks = [];
 const stateChangeCallbacks = [];
 const agentStatusCallbacks = [];
+const workspaceUpdateCallbacks = [];
 
 function connect() {
   socket = new WebSocket(`ws://${location.host}/ws/client`);
@@ -28,6 +29,10 @@ function connect() {
     } else if (message.type === "agent_status") {
       for (const callback of agentStatusCallbacks) {
         callback({ agent: message.agent, status: message.status });
+      }
+    } else if (message.type === "workspace_update") {
+      for (const callback of workspaceUpdateCallbacks) {
+        callback();
       }
     }
   });
@@ -88,4 +93,8 @@ export function onStateChange(callback) {
 
 export function onAgentStatus(callback) {
   agentStatusCallbacks.push(callback);
+}
+
+export function onWorkspaceUpdate(callback) {
+  workspaceUpdateCallbacks.push(callback);
 }

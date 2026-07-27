@@ -1,6 +1,6 @@
 import { fetchWorkspaces } from "./api.js";
 import { renderWorkspace, renderError, setWorkspaceName, updateTileState, setAgentOffline } from "./render.js";
-import { sendExecute, sendSetValue, onResult, onStateChange, onAgentStatus } from "./ws.js";
+import { sendExecute, sendSetValue, onResult, onStateChange, onAgentStatus, onWorkspaceUpdate } from "./ws.js";
 
 async function init() {
   try {
@@ -27,6 +27,10 @@ onResult((result) => console.log("result:", result));
 
 onStateChange((data) => updateTileState(data));
 onAgentStatus(({ status }) => setAgentOffline(status === "offline"));
+// Studio Mode edits arrive as a bare signal, not the changed data itself --
+// refetching and fully re-rendering is simplest and cheap enough here
+// (edits are infrequent), same as init()'s own first load.
+onWorkspaceUpdate(() => init());
 
 // iOS Safari only applies :active styles on tap if some element has a touch
 // listener attached; this empty listener exists solely to enable that.
