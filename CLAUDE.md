@@ -94,3 +94,11 @@ today's `execute`-only shape covers it.
 - iOS Safari applies :active only if a touch listener exists somewhere on the page (empty touchstart on document.body). Verify this is present in app.js before assuming CSS :active rules will work on iPhone.
 - Every execute command must resolve within 5s: ok, error, or timeout. A req_id that never gets a matching result is a bug, not an edge case.
 - SERVER_PORT must be read from .env, never hardcoded.
+
+## Known limitations
+
+- `POST /api/screenshot` is gated by the same `AGENT_TOKEN` shared secret
+  the WebSocket agent connection uses (an `X-Agent-Token` header check),
+  not a real auth system -- no per-caller identity, no expiry, no rate
+  limiting. Sufficient for this project's documented single-user,
+  local-network scope; revisit if that scope ever changes.

@@ -26,14 +26,21 @@ def handle_screenshot(params: dict) -> dict:
 
     try:
         # Read here, not at module level: agent.py imports this module
-        # before it calls load_dotenv(), so SERVER_IP/SERVER_PORT wouldn't
-        # be populated yet if read at import time in this file.
+        # before it calls load_dotenv(), so SERVER_IP/SERVER_PORT/AGENT_TOKEN
+        # wouldn't be populated yet if read at import time in this file.
         server_ip = os.environ["SERVER_IP"]
         server_port = os.environ.get("SERVER_PORT", "8000")
+        # Same AGENT_TOKEN the agent already sends in its WebSocket "hello"
+        # (see agent.py's `run()`), reused here as a lightweight shared
+        # secret for this HTTP route -- not a separate credential, and not
+        # a full auth system, just enough to keep the upload endpoint from
+        # accepting anonymous writes from anything else on the LAN.
+        agent_token = os.environ["AGENT_TOKEN"]
 
         response = requests.post(
             f"http://{server_ip}:{server_port}/api/screenshot",
             files={"file": ("screenshot.png", png_bytes, "image/png")},
+            headers={"X-Agent-Token": agent_token},
             timeout=5,
         )
         response.raise_for_status()
