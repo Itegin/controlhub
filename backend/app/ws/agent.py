@@ -3,6 +3,7 @@ import os
 
 from fastapi import WebSocket, WebSocketDisconnect
 
+from app.pending import resolve
 from app.state import update_state
 from app.ws.hub import hub
 
@@ -35,6 +36,10 @@ async def agent_ws(ws: WebSocket) -> None:
             logger.info("Agent raw message: %s", message)  # TODO: remove once state polling confirmed working end to end
             logger.info("Agent '%s' sent: %s", name, message)
             if message.get("type") == "result":
+                # Cancel the pending timeout before broadcasting: a real
+                # reply — even a late one racing the timer — should always
+                # win over a synthetic "timeout" result.
+                resolve(message.get("req_id"))
                 await hub.broadcast_to_clients(message)
             elif message.get("type") == "state":
                 changed = update_state(message["data"])

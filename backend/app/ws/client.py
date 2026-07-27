@@ -4,6 +4,7 @@ import logging
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.models import bump_press_count, get_item
+from app.pending import track
 from app.state import get_state
 from app.ws.hub import hub
 
@@ -68,3 +69,21 @@ async def _handle_execute(message: dict) -> None:
             "item_id": item_id,
         },
     )
+
+    # Start the timeout only now that the command has actually reached an
+    # agent: a request that never got forwarded (item missing, agent
+    # offline) already got its "error" result above, synchronously — a
+    # timer for it would just fire uselessly 5s later on a req_id nothing
+    # is waiting on anymore.
+    async def _on_timeout(rid: str) -> None:
+        await hub.broadcast_to_clients(
+            {
+                "type": "result",
+                "req_id": rid,
+                "item_id": item_id,
+                "status": "error",
+                "message": "timeout",
+            }
+        )
+
+    track(req_id, 5.0, _on_timeout)
