@@ -99,6 +99,9 @@ today's `execute`-only shape covers it.
   immediate error rather than waiting on a timeout.
 - The Windows agent depends on `pycaw`/`comtypes` (Windows COM audio
   APIs) — it only runs on Windows, by design.
+- Must run in the interactive user session, not as a SYSTEM-context
+  service — session 0 services cannot access a logged-in user's audio
+  session (Windows Session 0 Isolation).
 - The phone reaches the backend over plain `http://<lan-ip>:8000`, not
   HTTPS, so browser APIs that require a secure context (e.g.
   `crypto.randomUUID()`) are unavailable on that page; `ws.js` generates
