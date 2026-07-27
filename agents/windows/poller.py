@@ -1,6 +1,8 @@
 import asyncio
+import os
 
 from handlers.audio import get_muted, get_volume
+from handlers.process import is_process_running
 
 POLL_INTERVAL_SECONDS = 1
 
@@ -12,6 +14,7 @@ async def poll_loop(send_state_callback) -> None:
                 "mic.muted": get_muted("microphone"),
                 "speaker.volume": get_volume("speaker"),
                 "speaker.muted": get_muted("speaker"),
+                "vpn.running": is_process_running(os.environ.get("VPN_PROCESS_NAME", "")),
             }
         except Exception as exc:
             # Transient audio-stack errors (device swap mid-read, etc.)

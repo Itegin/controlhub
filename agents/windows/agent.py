@@ -7,7 +7,7 @@ from websockets import ConnectionClosed
 from websockets.asyncio.client import connect
 
 from handlers.audio import handle_audio_mute_toggle, handle_audio_switch, handle_audio_volume_set
-from handlers.process import handle_launch_app
+from handlers.process import handle_launch_app, handle_process_toggle
 from handlers.screenshot import handle_screenshot
 from poller import poll_loop
 
@@ -31,6 +31,7 @@ HANDLERS = {
     "audio_volume_set": handle_audio_volume_set,
     "audio_switch": handle_audio_switch,
     "screenshot": handle_screenshot,
+    "process_toggle": handle_process_toggle,
 }
 
 
