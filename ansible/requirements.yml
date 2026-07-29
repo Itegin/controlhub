@@ -1,0 +1,5 @@
+# ansible-core does not bundle the ufw module -- it lives in
+# community.general. Install with:
+#   ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: community.general

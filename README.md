@@ -75,6 +75,26 @@ dashboard itself never mutates the catalog.
 5. On the phone, open `http://<server-lan-ip>:8000` in the browser and add
    it to the home screen.
 
+## Automated server setup
+
+Steps 1–2 above (base packages, Docker, firewall, clone, `.env`, first
+`docker compose up`, and the daily backup cron job) can be done in one
+shot with the Ansible playbook in `ansible/` against a fresh Debian 12
+server:
+
+```
+ansible-galaxy collection install -r ansible/requirements.yml
+cp ansible/inventory.yml.example ansible/inventory.yml
+# edit ansible/inventory.yml with your server's IP, user, and SSH key
+ansible-playbook -i ansible/inventory.yml ansible/site.yml
+```
+
+It's safe to re-run — an existing `.env` is never overwritten. It does
+not provision SSH access to the git repo itself: `ansible_user` on the
+target server needs their own SSH key already authorized against the
+repo before the clone step will succeed. See `ansible/site.yml` for
+what each step does and why.
+
 ## Architecture
 
 Three pieces, each holding one persistent WebSocket: a **backend**

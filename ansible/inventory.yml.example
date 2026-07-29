@@ -1,0 +1,11 @@
+# Copy to inventory.yml (gitignored) and fill in your own server's
+# details. Never commit the real inventory.yml -- it names your actual
+# host and SSH key path.
+all:
+  children:
+    itdeck_servers:
+      hosts:
+        itdeck-example:
+          ansible_host: 203.0.113.10
+          ansible_user: deploy
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519

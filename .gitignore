@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 *.log
 .vscode/
+ansible/inventory.yml

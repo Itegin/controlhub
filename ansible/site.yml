@@ -1,0 +1,147 @@
+# Provisions a fresh Debian 12 server to run IT-Deck, matching the steps
+# done manually in Stage 1: base packages, Docker (via get.docker.com,
+# not apt's docker.io -- Debian 12's docker.io package is an older
+# Docker release that doesn't ship the compose v2 plugin, and this
+# project's own scripts (deploy.sh, backup.sh, docker-compose.yml) all
+# assume `docker compose` v2 syntax), firewall, the app checkout, and
+# the daily backup cron job.
+#
+# No roles/ directory: this playbook provisions exactly one kind of
+# host for exactly one project. Roles earn their keep when tasks get
+# reused across multiple roles or host groups -- neither applies here,
+# and splitting ~15 tasks into role directories (tasks/main.yml,
+# defaults/main.yml, meta/main.yml, ...) would add indirection without
+# simplifying anything. Revisit if a second, differently-configured
+# host group shows up.
+#
+# Run with:
+#   ansible-galaxy collection install -r ansible/requirements.yml
+#   ansible-playbook -i ansible/inventory.yml ansible/site.yml
+- name: Provision IT-Deck server
+  hosts: itdeck_servers
+  vars:
+    # Change if you fork the repo or deploy from elsewhere. This
+    # playbook never embeds credentials for it -- cloning over SSH
+    # relies entirely on ansible_user already having their own SSH key
+    # authorized against this repo on the target host (e.g. as a
+    # GitHub deploy key). Set it up yourself before running this.
+    itdeck_repo_url: "git@github.com:Itegin/it-deck.git"
+    itdeck_repo_version: main
+    itdeck_repo_dest: "{{ ansible_env.HOME }}/it-deck"
+    # Must match SERVER_PORT in .env / docker-compose.yml's port
+    # mapping -- kept as a separate var (not read back out of .env)
+    # because .env doesn't exist yet the first time this firewall rule
+    # runs. Update this and re-run if you change SERVER_PORT.
+    itdeck_app_port: 8000
+
+  tasks:
+    - name: Update apt cache and install base packages
+      ansible.builtin.apt:
+        name:
+          - git
+          - curl
+          - sqlite3
+          - ufw
+        update_cache: true
+      become: true
+
+    - name: Check whether Docker is already installed
+      ansible.builtin.command: docker --version
+      register: itdeck_docker_check
+      changed_when: false
+      failed_when: false
+
+    - name: Download the official Docker install script
+      ansible.builtin.get_url:
+        url: https://get.docker.com
+        dest: /tmp/get-docker.sh
+        mode: "0755"
+      when: itdeck_docker_check.rc != 0
+
+    # get.docker.com installs docker-ce, docker-ce-cli, containerd.io,
+    # and the docker-compose-plugin (v2) -- exactly what apt's docker.io
+    # doesn't give you on Debian 12.
+    - name: Run the Docker install script
+      ansible.builtin.command: sh /tmp/get-docker.sh
+      when: itdeck_docker_check.rc != 0
+      become: true
+
+    - name: Ensure the Docker service is running and enabled
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+      become: true
+
+    - name: Add {{ ansible_user }} to the docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+      become: true
+
+    # Group membership doesn't apply to an already-open SSH connection --
+    # without this, the "docker compose up" task below would fail with a
+    # permission-denied error on a freshly provisioned host even though
+    # the group add above reported success.
+    - name: Reset the connection so the new docker group membership applies
+      ansible.builtin.meta: reset_connection
+
+    - name: Allow SSH through the firewall
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+      become: true
+
+    - name: Allow the app port through the firewall
+      community.general.ufw:
+        rule: allow
+        port: "{{ itdeck_app_port }}"
+        proto: tcp
+      become: true
+
+    - name: Deny all other inbound traffic by default
+      community.general.ufw:
+        direction: incoming
+        policy: deny
+      become: true
+
+    - name: Enable the firewall
+      community.general.ufw:
+        state: enabled
+      become: true
+
+    - name: Clone the IT-Deck repo
+      ansible.builtin.git:
+        repo: "{{ itdeck_repo_url }}"
+        dest: "{{ itdeck_repo_dest }}"
+        version: "{{ itdeck_repo_version }}"
+
+    # force: false == "only copy if dest doesn't already exist" -- an
+    # existing .env on a re-run is real config (AGENT_TOKEN etc.) and
+    # must never be clobbered.
+    - name: Copy .env.example to .env if it doesn't already exist
+      ansible.builtin.copy:
+        src: "{{ itdeck_repo_dest }}/.env.example"
+        dest: "{{ itdeck_repo_dest }}/.env"
+        remote_src: true
+        force: false
+
+    # Always reports "changed" -- it shells out straight to compose
+    # rather than trying to pre-classify whether anything will actually
+    # rebuild, same as deploy.sh does.
+    - name: Build and start the backend container
+      ansible.builtin.command: docker compose up -d --build
+      args:
+        chdir: "{{ itdeck_repo_dest }}"
+
+    # Matches the crontab line already documented as a comment at the
+    # bottom of backup.sh.
+    - name: Register the daily backup cron job
+      ansible.builtin.cron:
+        name: "IT-Deck daily backup"
+        user: "{{ ansible_user }}"
+        minute: "0"
+        hour: "3"
+        job: "{{ itdeck_repo_dest }}/backup.sh >> {{ itdeck_repo_dest }}/data/backups/backup.log 2>&1"
