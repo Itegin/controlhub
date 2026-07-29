@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.items import router as items_router
 from app.api.screenshot import router as screenshot_router
 from app.db import (
+    fixup_audio_switch_state_key,
     fixup_day4_items,
     fixup_legacy_seed,
     fixup_mic_item,
@@ -47,6 +48,7 @@ def on_startup() -> None:
     # cell that Volume's move vacates, so the ordering here is load-bearing.
     fixup_day4_items()
     fixup_vpn_item()
+    fixup_audio_switch_state_key()
 
 
 @app.get("/health")

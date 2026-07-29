@@ -216,6 +216,26 @@ def fixup_day4_items() -> None:
         conn.close()
 
 
+def fixup_audio_switch_state_key() -> None:
+    # 'Audio Switch' was inserted by fixup_day4_items() with state_key=None
+    # -- there was nothing to key it to until the poller started reporting
+    # speaker.device_name. Guarded by state_key IS NULL (not a plain label
+    # match) so a manual state_key set via Studio isn't clobbered on the
+    # next startup, unlike fixup_volume_item()'s always-reapply pattern.
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            UPDATE item
+            SET state_key = 'speaker.device_name'
+            WHERE label = 'Audio Switch' AND state_key IS NULL
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def fixup_vpn_item() -> None:
     # Same insert-if-missing idempotency as fixup_day4_items(). Placement
     # is (row=3, col=1): the originally proposed (row=3, col=0) collides

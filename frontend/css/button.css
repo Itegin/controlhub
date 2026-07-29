@@ -40,6 +40,20 @@
   -webkit-touch-callout: none;
 }
 
+/* Secondary text below .label -- e.g. the Audio Switch tile's current
+   device name, pushed in via updateTileState for string-valued state. */
+.tile .subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.65;
+  text-align: center;
+  margin-top: 2px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .tile .icon {
   width: 28px;
   height: 28px;
@@ -52,13 +66,16 @@
 }
 
 .tile.state-active {
-  background-color: #0d9488;
+  background-color: var(--active-color, #0d9488);
 }
 
 /* Which class an item uses (teal "active" vs red "alert") is decided per
-   item by render.js reading item.params.active_style -- see renderWorkspace. */
+   item by render.js reading item.params.active_style -- see renderWorkspace.
+   The colors themselves come from --active-color/--alert-color, set per
+   tile from item.params.active_color/alert_color (falls back to these same
+   teal/red defaults if unset). */
 .tile.state-alert {
-  background-color: #dc2626;
+  background-color: var(--alert-color, #dc2626);
 }
 
 .tile-slider {
@@ -75,7 +92,11 @@
   position: absolute;
   inset: 0;
   width: var(--fill-percent, 0%);
-  background-color: #0d9488;
+  /* Sliders never toggle .state-active (they report a number, not a
+     boolean), but the fill still needs to be themeable the same way --
+     it reads the same --active-color custom property render.js sets on
+     every tile. */
+  background-color: var(--active-color, #0d9488);
   transition: width 200ms ease;
   pointer-events: none;
   z-index: 0;

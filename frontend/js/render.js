@@ -36,10 +36,27 @@ export function renderWorkspace(workspace, onTileClick, onSliderChange, onTileLo
     // Explicit per-item styling choice (teal "active" vs red "alert"),
     // read from the DB row instead of guessed from the state key's name.
     tile.dataset.activeStyle = (item.params && item.params.active_style) || "normal";
+    // Optional "off" color for the false side of a boolean state -- left
+    // unset (not assigned "null") when absent: dataset values are always
+    // coerced to strings, so `tile.dataset.falseColor = null` would
+    // actually store the truthy string "null", not nothing, and later
+    // falsy-checks on it would misfire.
+    if (item.params && item.params.false_color) {
+      tile.dataset.falseColor = item.params.false_color;
+    } else {
+      delete tile.dataset.falseColor;
+    }
 
     tile.style.gridColumn = `${item.col + 1} / span ${item.width}`;
     tile.style.gridRow = `${item.row + 1} / span ${item.height}`;
     tile.style.setProperty("--tile-color", item.color);
+    // Per-item active/alert theming -- optional params keys, falling back
+    // to the original hardcoded teal/red so untouched items render
+    // identically to before this existed. Set on every tile (not just
+    // ones that toggle state) so the Volume slider's fill-bar can read
+    // --active-color too, per button.css.
+    tile.style.setProperty("--active-color", (item.params && item.params.active_color) || "#0d9488");
+    tile.style.setProperty("--alert-color", (item.params && item.params.alert_color) || "#dc2626");
 
     const isSlider = item.kind === "action" && item.width >= 2 && item.type === "audio_volume_set";
 
@@ -130,8 +147,36 @@ export function updateTileState(stateData) {
         tile.style.setProperty("--fill-percent", `${value}%`);
         continue;
       }
+      if (typeof value === "string") {
+        // e.g. speaker.device_name -- a live device/mode name, not a
+        // boolean to toggle a class for or a number to fill a bar with.
+        // Lazily created since not every tile with a string state_key
+        // starts out with one in its initial markup.
+        let subtitle = tile.querySelector(".subtitle");
+        if (!subtitle) {
+          subtitle = document.createElement("div");
+          subtitle.className = "subtitle";
+          tile.appendChild(subtitle);
+        }
+        subtitle.textContent = value;
+        continue;
+      }
       const activeClass = tile.dataset.activeStyle === "alert" ? "state-alert" : "state-active";
-      tile.classList.toggle(activeClass, Boolean(value));
+      const isTrue = Boolean(value);
+      tile.classList.toggle(activeClass, isTrue);
+
+      // false_color is an inline style, which beats any stylesheet rule
+      // (including .state-active/.state-alert's class-based
+      // --active-color/--alert-color) regardless of specificity -- so on
+      // the true side it must be cleared back to "", or a stale false-state
+      // color would permanently win over the class-based one from here on.
+      if (isTrue) {
+        tile.style.backgroundColor = "";
+      } else if (tile.dataset.falseColor) {
+        tile.style.backgroundColor = tile.dataset.falseColor;
+      } else {
+        tile.style.backgroundColor = ""; // falls back to item.color via --tile-color
+      }
     }
   }
 }

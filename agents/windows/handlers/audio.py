@@ -47,6 +47,19 @@ def get_volume(device: str) -> int:
     return round(_get_volume_interface(device).GetMasterVolumeLevelScalar() * 100)
 
 
+def get_default_output_name() -> str:
+    # Not built on _get_volume_interface (that resolves to an
+    # IAudioEndpointVolume, which has no name) -- AudioUtilities.CreateDevice
+    # wraps the same default-render endpoint into pycaw's AudioDevice,
+    # whose .FriendlyName reads the DEVPKEY_Device_FriendlyName property
+    # (e.g. "Speakers (Realtek...)"). Re-resolved on every call, same
+    # reasoning as _get_volume_interface: the default output can change
+    # (switched in Windows sound settings, a device unplugged) between polls.
+    enumerator = AudioUtilities.GetDeviceEnumerator()
+    endpoint = enumerator.GetDefaultAudioEndpoint(_DATA_FLOWS["speaker"], ERole.eMultimedia.value)
+    return AudioUtilities.CreateDevice(endpoint).FriendlyName
+
+
 def set_volume(device: str, value: int) -> None:
     _get_volume_interface(device).SetMasterVolumeLevelScalar(value / 100, None)
 

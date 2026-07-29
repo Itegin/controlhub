@@ -8,6 +8,9 @@ const fields = {
   label: document.getElementById("field-label"),
   icon: document.getElementById("field-icon"),
   color: document.getElementById("field-color"),
+  activeColor: document.getElementById("field-active-color"),
+  alertColor: document.getElementById("field-alert-color"),
+  falseColor: document.getElementById("field-false-color"),
   kind: document.getElementById("field-kind"),
   type: document.getElementById("field-type"),
   target: document.getElementById("field-target"),
@@ -80,6 +83,17 @@ function renderTable(items) {
   }
 }
 
+// Used only to pre-fill the active/alert color pickers -- malformed
+// params shouldn't block opening the form (the params textarea itself
+// still shows the raw string, errors included, for the user to fix).
+function parseParamsLoosely(paramsString) {
+  try {
+    return JSON.parse(paramsString) || {};
+  } catch {
+    return {};
+  }
+}
+
 function openForm(item) {
   paramsError.hidden = true;
 
@@ -98,11 +112,28 @@ function openForm(item) {
     fields.width.value = item.width;
     fields.height.value = item.height;
     fields.params.value = item.params;
+    // active_color/alert_color live inside params, not their own DB
+    // columns -- pre-fill from there, falling back to the same
+    // hardcoded teal/red the dashboard itself falls back to, so an
+    // untouched item's picker reflects what's actually rendering now.
+    const existingParams = parseParamsLoosely(item.params);
+    fields.activeColor.value = existingParams.active_color || "#0d9488";
+    fields.alertColor.value = existingParams.alert_color || "#dc2626";
+    // Unlike active/alert (which fall back to a fixed hardcoded color when
+    // unset), the false-state fallback is item.color itself -- a
+    // per-item, not fixed, value. Pre-filling with that same value (not
+    // a fixed constant) means saving unchanged writes back the color
+    // that was already rendering, so untouched items stay visually
+    // identical even though false_color now has a concrete value in params.
+    fields.falseColor.value = existingParams.false_color || item.color || "#2a2f38";
   } else {
     form.reset();
     fields.id.value = "";
     fields.workspaceId.value = defaultWorkspaceId ?? "";
     fields.color.value = "#2a2f38";
+    fields.activeColor.value = "#0d9488";
+    fields.alertColor.value = "#dc2626";
+    fields.falseColor.value = "#2a2f38";
     fields.width.value = 1;
     fields.height.value = 1;
     fields.params.value = "{}";
@@ -141,15 +172,23 @@ document.getElementById("cancel-btn").addEventListener("click", closeForm);
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const paramsValue = fields.params.value;
+  let paramsObj;
   try {
-    JSON.parse(paramsValue);
+    paramsObj = JSON.parse(fields.params.value);
   } catch (err) {
     paramsError.textContent = `Params must be valid JSON: ${err.message}`;
     paramsError.hidden = false;
     return;
   }
   paramsError.hidden = true;
+
+  // Merge the color pickers in last -- they're the source of truth for
+  // active_color/alert_color/false_color, overriding whatever the raw
+  // params textarea happened to have typed in for those same keys.
+  paramsObj.active_color = fields.activeColor.value;
+  paramsObj.alert_color = fields.alertColor.value;
+  paramsObj.false_color = fields.falseColor.value;
+  const paramsValue = JSON.stringify(paramsObj);
 
   const body = {
     workspace_id: Number(fields.workspaceId.value),
