@@ -154,8 +154,3 @@ export function renderError(message) {
   errorEl.textContent = message;
   grid.appendChild(errorEl);
 }
-
-export function setWorkspaceName(name) {
-  const nameEl = document.getElementById("workspace-name");
-  nameEl.textContent = name;
-}

@@ -1,5 +1,5 @@
 import { fetchWorkspaces } from "./api.js";
-import { renderWorkspace, renderError, setWorkspaceName, updateTileState, setAgentOffline } from "./render.js";
+import { renderWorkspace, renderError, updateTileState, setAgentOffline } from "./render.js";
 import { sendExecute, sendSetValue, onResult, onStateChange, onAgentStatus, onWorkspaceUpdate } from "./ws.js";
 import { showContextMenu } from "./contextmenu.js";
 
@@ -27,7 +27,6 @@ async function init() {
       return;
     }
 
-    setWorkspaceName(workspace.name);
     renderWorkspace(workspace, sendExecute, sendSetValue, handleTileLongPress);
   } catch (err) {
     renderError("Failed to load");

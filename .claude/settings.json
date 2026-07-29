@@ -8,6 +8,10 @@
           {
             "type": "command",
             "command": "grep -qE 'agents[\\\\/]+windows' && echo '{\"systemMessage\": \"agents/windows changed - restart the running agent.py (Ctrl+C, then python agent.py) to load this. deploy.sh only rebuilds the backend container, not the agent process.\"}' || true"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/ruff_check.py"
           }
         ]
       }
