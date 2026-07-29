@@ -111,12 +111,18 @@ function openForm(item) {
     fields.col.value = item.col;
     fields.width.value = item.width;
     fields.height.value = item.height;
-    fields.params.value = item.params;
     // active_color/alert_color live inside params, not their own DB
     // columns -- pre-fill from there, falling back to the same
     // hardcoded teal/red the dashboard itself falls back to, so an
     // untouched item's picker reflects what's actually rendering now.
     const existingParams = parseParamsLoosely(item.params);
+    // Pretty-print for readability; fall back to the raw string if it
+    // somehow isn't valid JSON so a malformed value is still visible/editable.
+    try {
+      fields.params.value = JSON.stringify(JSON.parse(item.params), null, 2);
+    } catch {
+      fields.params.value = item.params;
+    }
     fields.activeColor.value = existingParams.active_color || "#0d9488";
     fields.alertColor.value = existingParams.alert_color || "#dc2626";
     // Unlike active/alert (which fall back to a fixed hardcoded color when

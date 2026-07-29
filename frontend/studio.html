@@ -76,6 +76,14 @@
       gap: 12px;
     }
 
+    /* #item-form's own ID selector otherwise beats the UA [hidden]
+       stylesheet rule on specificity, so form.hidden = true had no visual
+       effect and the form stayed rendered (with stale/blank field values)
+       across Cancel/Save and even before the first Edit click. */
+    #item-form[hidden] {
+      display: none;
+    }
+
     #item-form label {
       display: flex;
       flex-direction: column;
