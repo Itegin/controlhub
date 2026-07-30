@@ -20,7 +20,10 @@ def is_process_running(name: str) -> bool:
 
 
 def start_process(path: str) -> None:
-    subprocess.Popen([path])
+    subprocess.Popen(
+        [path],
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+    )
 
 
 def kill_process(name: str) -> None:
