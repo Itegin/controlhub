@@ -5,3 +5,4 @@ __pycache__/
 *.log
 .vscode/
 ansible/inventory.yml
+agents/windows/icon.ico
