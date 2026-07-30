@@ -1,3 +1,18 @@
+/* Dashboard-only (this file isn't linked from studio.html): takes html/body
+   out of the scrollable chain entirely so iOS Safari's outer elastic
+   bounce has nothing to bounce -- overscroll-behavior:none in base.css
+   only affects scrollable descendants, not the root viewport itself.
+   min-height:0 overrides base.css's body{min-height:100vh}, which would
+   otherwise fight the explicit height:100% here (100vh is the *large*
+   iOS viewport, taller than the visible one in non-standalone Safari). */
+html, body {
+  position: fixed;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+
 #grid {
   display: grid;
   grid-template-columns: repeat(var(--cols, 3), 1fr);
