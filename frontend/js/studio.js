@@ -22,9 +22,8 @@ const fields = {
   params: document.getElementById("field-params"),
 };
 
-// This app has only ever had one workspace ("Home"); the create form has
-// no workspace picker (not in the original field list), so new items go
-// to whichever workspace loaded first rather than a hardcoded id.
+// Used to pre-select the workspace picker for new items -- whichever
+// workspace loaded first (position=0, i.e. "Home" today).
 let defaultWorkspaceId = null;
 
 // Studio Mode has no login UI, so the agent token is collected once via a
@@ -45,11 +44,22 @@ async function loadItems() {
   const response = await fetch("/api/workspaces");
   const workspaces = await response.json();
   defaultWorkspaceId = workspaces[0] ? workspaces[0].id : null;
+  populateWorkspaceSelect(workspaces);
   // Kept as the raw params string here (unlike the dashboard's
   // fetchWorkspaces in api.js, which parses it) -- the form's textarea
   // and the CRUD endpoints both want the JSON string form directly.
   const items = workspaces.flatMap((workspace) => workspace.items);
   renderTable(items);
+}
+
+function populateWorkspaceSelect(workspaces) {
+  fields.workspaceId.innerHTML = "";
+  for (const workspace of workspaces) {
+    const option = document.createElement("option");
+    option.value = workspace.id;
+    option.textContent = workspace.name;
+    fields.workspaceId.appendChild(option);
+  }
 }
 
 function renderTable(items) {

@@ -20,7 +20,9 @@ function handleTileLongPress(item) {
 async function init() {
   try {
     const workspaces = await fetchWorkspaces();
-    const workspace = workspaces[0];
+    const requestedId = new URLSearchParams(window.location.search).get("workspace");
+    const workspace =
+      workspaces.find((w) => String(w.id) === requestedId) ?? workspaces[0];
 
     if (!workspace) {
       renderError("No workspaces found");
