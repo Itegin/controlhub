@@ -128,13 +128,16 @@
         remote_src: true
         force: false
 
-    # Always reports "changed" -- it shells out straight to compose
-    # rather than trying to pre-classify whether anything will actually
-    # rebuild, same as deploy.sh does.
     - name: Build and start the backend container
       ansible.builtin.command: docker compose up -d --build
       args:
         chdir: "{{ itdeck_repo_dest }}"
+      register: compose_up
+      changed_when: >
+        'Started' in (compose_up.stdout + compose_up.stderr)
+        or 'Created' in (compose_up.stdout + compose_up.stderr)
+        or 'Recreat' in (compose_up.stdout + compose_up.stderr)
+        or 'Building' in (compose_up.stdout + compose_up.stderr)
 
     # Matches the crontab line already documented as a comment at the
     # bottom of backup.sh.

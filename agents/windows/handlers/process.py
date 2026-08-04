@@ -20,20 +20,7 @@ def is_process_running(name: str) -> bool:
 
 
 def start_process(path: str) -> None:
-    try:
-        subprocess.Popen(
-            [path],
-            creationflags=(
-                subprocess.CREATE_NEW_PROCESS_GROUP
-                | subprocess.DETACHED_PROCESS
-                | subprocess.CREATE_BREAKAWAY_FROM_JOB
-            ),
-        )
-    except OSError:
-        subprocess.Popen(
-            [path],
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
-        )
+    os.startfile(path)
 
 
 def kill_process(name: str) -> None:
