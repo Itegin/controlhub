@@ -141,7 +141,7 @@
     - name: Register the daily backup cron job
       ansible.builtin.cron:
         name: "IT-Deck daily backup"
-        user: "{{ ansible_user }}"
+        user: root
         minute: "0"
         hour: "3"
         job: "{{ itdeck_repo_dest }}/backup.sh >> {{ itdeck_repo_dest }}/data/backups/backup.log 2>&1"
