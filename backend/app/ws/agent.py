@@ -21,7 +21,11 @@ async def agent_ws(ws: WebSocket) -> None:
     # Check the token before registering the agent so a bad/missing token
     # never makes it into the hub, even for an instant.
     token = hello.get("token")
-    if token != os.environ.get("AGENT_TOKEN"):
+    expected_token = os.environ.get("AGENT_TOKEN")
+    # "not expected_token" guards against AGENT_TOKEN being unset entirely:
+    # without it, a missing env var (None) would equal a missing token
+    # (None) and silently let an unauthenticated agent through.
+    if not expected_token or token != expected_token:
         await ws.close(code=4001)
         return
 
