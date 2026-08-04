@@ -20,12 +20,12 @@
 - name: Provision IT-Deck server
   hosts: itdeck_servers
   vars:
-    # Change if you fork the repo or deploy from elsewhere. This
-    # playbook never embeds credentials for it -- cloning over SSH
-    # relies entirely on ansible_user already having their own SSH key
-    # authorized against this repo on the target host (e.g. as a
-    # GitHub deploy key). Set it up yourself before running this.
-    itdeck_repo_url: "git@github.com:Itegin/it-deck.git"
+    # Change if you fork the repo or deploy from elsewhere. HTTPS, not
+    # SSH: the repo is public, so this clones anonymously with zero
+    # key/host-key setup -- avoids the "Host key verification failed"
+    # failure a blank VM hits on its first-ever connection to
+    # github.com over SSH.
+    itdeck_repo_url: "https://github.com/Itegin/it-deck.git"
     itdeck_repo_version: main
     itdeck_repo_dest: "{{ ansible_env.HOME }}/it-deck"
     # Must match SERVER_PORT in .env / docker-compose.yml's port
