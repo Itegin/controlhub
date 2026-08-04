@@ -181,6 +181,35 @@ export function updateTileState(stateData) {
   }
 }
 
+// Reuses .tile/.label styling (colors, radius, :active feedback) rather
+// than inventing selector-specific markup -- one workspace per row, full
+// width, stacked via --cols:1/--rows:<count> on the same #grid the
+// dashboard uses.
+export function renderWorkspaceSelector(workspaces, onSelect) {
+  const grid = document.getElementById("grid");
+
+  grid.style.setProperty("--cols", 1);
+  grid.style.setProperty("--rows", workspaces.length);
+
+  grid.innerHTML = "";
+
+  workspaces.forEach((workspace, index) => {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.style.gridColumn = "1 / span 1";
+    tile.style.gridRow = `${index + 1} / span 1`;
+
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = workspace.name;
+    tile.appendChild(label);
+
+    tile.addEventListener("click", () => onSelect(workspace));
+
+    grid.appendChild(tile);
+  });
+}
+
 export function setAgentOffline(isOffline) {
   // Only one agent exists today, so "every actionable tile" and "this
   // agent's tiles" are the same set -- revisit with a target-aware

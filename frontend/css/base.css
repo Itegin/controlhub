@@ -48,3 +48,8 @@ body {
   font-size: 14px;
   text-decoration: none;
 }
+
+#workspace-header .header-links {
+  display: flex;
+  gap: 12px;
+}

@@ -5,6 +5,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  container-type: size;
   transition: transform 120ms, background-color 200ms ease, color 200ms ease, filter 80ms ease;
   user-select: none;
   /* Disables iOS's native double-tap-zoom and, critically, narrows what
@@ -32,6 +33,7 @@
 
 .tile .label {
   font-size: 17px;
+  font-size: clamp(13px, 11cqmin, 22px);
   font-weight: 600;
   text-align: center;
   touch-action: manipulation;
@@ -44,6 +46,7 @@
    device name, pushed in via updateTileState for string-valued state. */
 .tile .subtitle {
   font-size: 12px;
+  font-size: clamp(9px, 8cqmin, 15px);
   font-weight: 400;
   opacity: 0.65;
   text-align: center;
@@ -57,6 +60,8 @@
 .tile .icon {
   width: 28px;
   height: 28px;
+  width: clamp(20px, 18cqmin, 42px);
+  height: clamp(20px, 18cqmin, 42px);
   margin-bottom: 6px;
 }
 
