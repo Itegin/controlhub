@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.items import router as items_router
 from app.api.screenshot import router as screenshot_router
+from app.api.workspaces import router as workspaces_router
 from app.db import (
     fixup_audio_switch_state_key,
     fixup_day4_items,
@@ -73,6 +74,7 @@ async def ws_client(ws: WebSocket) -> None:
 
 app.include_router(screenshot_router)
 app.include_router(items_router)
+app.include_router(workspaces_router)
 
 
 # Starlette matches routes in registration order, so a catch-all mount at "/"
