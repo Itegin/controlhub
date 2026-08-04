@@ -3,6 +3,7 @@
 __pycache__/
 *.pyc
 *.log
+agents/windows/crash_log.txt
 .vscode/
 ansible/inventory.yml
 agents/windows/icon.ico

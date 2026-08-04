@@ -25,6 +25,9 @@ body {
   /* Stops Safari's "Copy/Look Up" menu on long-press -- this is the one
      that would otherwise fight directly with the Long Press feature. */
   -webkit-touch-callout: none;
+  /* Extends button.css's touch-action: manipulation to the background
+     area between tiles, so double-tap/pinch zoom is suppressed there too. */
+  touch-action: manipulation;
 }
 
 #workspace-header {

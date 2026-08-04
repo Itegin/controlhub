@@ -20,10 +20,20 @@ def is_process_running(name: str) -> bool:
 
 
 def start_process(path: str) -> None:
-    subprocess.Popen(
-        [path],
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
-    )
+    try:
+        subprocess.Popen(
+            [path],
+            creationflags=(
+                subprocess.CREATE_NEW_PROCESS_GROUP
+                | subprocess.DETACHED_PROCESS
+                | subprocess.CREATE_BREAKAWAY_FROM_JOB
+            ),
+        )
+    except OSError:
+        subprocess.Popen(
+            [path],
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+        )
 
 
 def kill_process(name: str) -> None:
@@ -38,7 +48,20 @@ def kill_process(name: str) -> None:
 
 def handle_launch_app(params: dict) -> dict:
     try:
-        subprocess.Popen(params["path"])
+        try:
+            subprocess.Popen(
+                [params["path"]],
+                creationflags=(
+                    subprocess.CREATE_NEW_PROCESS_GROUP
+                    | subprocess.DETACHED_PROCESS
+                    | subprocess.CREATE_BREAKAWAY_FROM_JOB
+                ),
+            )
+        except OSError:
+            subprocess.Popen(
+                [params["path"]],
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+            )
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "message": str(e)}

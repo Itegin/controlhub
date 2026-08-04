@@ -1,3 +1,5 @@
+# Requires Python 3.7-3.12 (comtypes' own supported range). Do not run
+# under 3.13/3.14 -- caused a real crash on 2026-08-03.
 websockets==13.1
 python-dotenv==1.0.1
 pycaw==20240210

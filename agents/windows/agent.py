@@ -1,7 +1,11 @@
 import asyncio
 import json
 import os
+import sys
 
+import win32api
+import win32event
+import winerror
 from dotenv import load_dotenv
 from websockets import ConnectionClosed
 from websockets.asyncio.client import connect
@@ -24,6 +28,7 @@ SERVER_PORT = os.environ.get("SERVER_PORT", "8000")
 SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}/ws/agent"
 
 MAX_BACKOFF = 30
+SINGLETON_MUTEX_NAME = "Global\\ITDeckAgentSingleton"
 
 HANDLERS = {
     "launch_app": handle_launch_app,
@@ -91,6 +96,17 @@ async def run() -> None:
 
 
 async def main() -> None:
+    # Named mutex, not a lock file: Windows releases it automatically if the
+    # owning process dies, so there's no stale-lock cleanup to write. This
+    # guards against the Scheduled Task autostart and a manual launch both
+    # running at once -- two agents silently overwriting each other's
+    # WebSocket registration on the backend caused a day of contradictory
+    # VPN-state bugs.
+    win32event.CreateMutex(None, False, SINGLETON_MUTEX_NAME)
+    if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+        print("Another instance is already running -- exiting.")
+        sys.exit(1)
+
     backoff = 1
     while True:
         try:
