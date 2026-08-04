@@ -137,7 +137,6 @@
         'Started' in (compose_up.stdout + compose_up.stderr)
         or 'Created' in (compose_up.stdout + compose_up.stderr)
         or 'Recreat' in (compose_up.stdout + compose_up.stderr)
-        or 'Building' in (compose_up.stdout + compose_up.stderr)
 
     # Matches the crontab line already documented as a comment at the
     # bottom of backup.sh.
