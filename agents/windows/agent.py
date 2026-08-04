@@ -19,6 +19,7 @@ load_dotenv()
 
 SERVER_IP = os.environ["SERVER_IP"]
 AGENT_TOKEN = os.environ["AGENT_TOKEN"]
+AGENT_NAME = os.environ.get("AGENT_NAME", "windows")
 # Previously hardcoded 8000 here -- SERVER_PORT was documented in
 # .env.example but never actually read anywhere, in violation of
 # CLAUDE.md's own "SERVER_PORT must be read from .env, never hardcoded"
@@ -80,7 +81,7 @@ async def run() -> None:
     async with connect(SERVER_URL) as ws:
         await ws.send(json.dumps({
             "type": "hello",
-            "agent": "windows",
+            "agent": AGENT_NAME,
             "version": "0.1.0",
             "token": AGENT_TOKEN,
         }))

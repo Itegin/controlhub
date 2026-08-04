@@ -17,6 +17,8 @@ class ConnectionHub:
         self.clients.discard(ws)
 
     def register_agent(self, name: str, ws: WebSocket) -> None:
+        if name in self.agents:
+            logger.warning("Agent '%s' already registered, overwriting existing connection", name)
         self.agents[name] = ws
 
     def unregister_agent(self, name: str) -> None:
