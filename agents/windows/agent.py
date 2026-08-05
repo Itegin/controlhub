@@ -10,7 +10,12 @@ from dotenv import load_dotenv
 from websockets import ConnectionClosed
 from websockets.asyncio.client import connect
 
-from handlers.audio import handle_audio_mute_toggle, handle_audio_switch, handle_audio_volume_set
+from handlers.audio import (
+    handle_audio_mute_toggle,
+    handle_audio_switch,
+    handle_audio_volume_set,
+    handle_list_devices,
+)
 from handlers.process import handle_force_stop, handle_launch_app, handle_process_toggle
 from handlers.screenshot import handle_screenshot
 from poller import poll_loop
@@ -36,6 +41,7 @@ HANDLERS = {
     "audio_mute_toggle": handle_audio_mute_toggle,
     "audio_volume_set": handle_audio_volume_set,
     "audio_switch": handle_audio_switch,
+    "list_devices": handle_list_devices,
     "screenshot": handle_screenshot,
     "process_toggle": handle_process_toggle,
     "force_stop": handle_force_stop,

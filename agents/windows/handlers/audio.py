@@ -1,5 +1,7 @@
+import csv
 import os
 import subprocess
+import tempfile
 from ctypes import POINTER, cast
 from pathlib import Path
 
@@ -15,6 +17,21 @@ _DATA_FLOWS = {
 # file's own location rather than a relative path so it doesn't depend on
 # the process's cwd when the agent is launched (e.g. as a scheduled task).
 _SOUND_VOLUME_VIEW = Path(__file__).resolve().parent.parent / "tools" / "SoundVolumeView.exe"
+
+# Column names must match SoundVolumeView's own header spelling exactly --
+# it silently emits an empty column for anything it doesn't recognise
+# rather than erroring, so a typo here shows up as blank fields, not a
+# crash. Verified against a real /scomma export (tools/devices.csv).
+#
+# "Type" is not returned to the caller; it's requested purely so the parse
+# below can filter to real endpoints. A full export is mostly noise -- of
+# 35 rows on this machine only 4 were Type=Device, the rest being Subunit
+# (per-channel controls like "Front"/"Rear") and Application (whatever
+# happened to be playing audio). It also disambiguates: "Динамики" appears
+# BOTH as the Realtek render Device and as a capture-side Subunit under an
+# unrelated fifine Microphone, which is exactly the collision
+# handle_audio_switch's comment below warns about.
+_DEVICE_COLUMNS = "Name,Command-Line Friendly ID,Direction,Default,Type"
 
 
 def _get_volume_interface(device: str) -> IAudioEndpointVolume:
@@ -62,6 +79,62 @@ def get_default_output_name() -> str:
 
 def set_volume(device: str, value: int) -> None:
     _get_volume_interface(device).SetMasterVolumeLevelScalar(value / 100, None)
+
+
+def list_devices() -> list[dict]:
+    # Exports via SoundVolumeView rather than enumerating through pycaw
+    # because the "id" below has to be SoundVolumeView's own
+    # "Command-Line Friendly ID" -- the exact string OUTPUT_DEVICE_PRIMARY/
+    # SECONDARY hold and /SwitchDefault expects (see handle_audio_switch).
+    # Only the tool that defines that ID format can be trusted to produce
+    # it; deriving it from pycaw's FriendlyName would mean reimplementing
+    # the DriverName\Device\Name\Direction convention by hand.
+    #
+    # A TemporaryDirectory, not NamedTemporaryFile: on Windows a still-open
+    # NamedTemporaryFile can't be written by another process, and
+    # SoundVolumeView needs to open this path itself. The context manager
+    # deletes the directory and the export inside it on the way out, so
+    # there's no cleanup to forget and no fixed path in tools/ for
+    # concurrent calls to collide over.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        export_path = Path(tmpdir) / "devices.csv"
+
+        # timeout=4 for the same reason handle_audio_switch documents at
+        # length below: this runs synchronously inside the agent's single
+        # receive loop, so an unbounded subprocess call here would stall
+        # the whole agent, and it stays under the backend's 5s execute
+        # timeout so a real hang still surfaces as this handler's own
+        # error rather than the backend's synthetic one.
+        subprocess.run(
+            [str(_SOUND_VOLUME_VIEW), "/scomma", str(export_path), "/Columns", _DEVICE_COLUMNS],
+            check=True,
+            timeout=4,
+        )
+
+        # utf-8-sig, not utf-8: SoundVolumeView writes a UTF-8 BOM (verified
+        # -- both tools/devices.csv and a fresh export start EF BB BF), and
+        # plain utf-8 would leave it on the first header name, making the
+        # key "﻿Name" instead of "Name". Device names here are
+        # routinely non-ASCII ("Динамики", "Микрофон"), so the encoding has
+        # to be explicit anyway rather than left to the machine's locale.
+        # newline="" is the csv module's documented requirement: quoted
+        # fields in this export can contain embedded newlines.
+        with open(export_path, newline="", encoding="utf-8-sig") as f:
+            rows = list(csv.DictReader(f))
+
+    return [
+        {
+            "name": row["Name"],
+            "id": row["Command-Line Friendly ID"],
+            "direction": row["Direction"],
+            # Not a Yes/No field: "Default" is empty for non-defaults and
+            # otherwise holds the direction it's default for ("Render" /
+            # "Capture"), so this is an emptiness test, not a == "Yes".
+            "is_default": bool(row["Default"].strip()),
+        }
+        for row in rows
+        if row["Type"] == "Device"
+    ]
 
 
 def handle_audio_mute_toggle(params: dict) -> dict:
@@ -119,5 +192,14 @@ def handle_audio_switch(params: dict) -> dict:
             timeout=4,
         )
         return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+def handle_list_devices(params: dict) -> dict:
+    # Takes params for signature parity with every other handler (agent.py
+    # dispatches them all the same way) -- there is nothing to configure.
+    try:
+        return {"status": "ok", "devices": list_devices()}
     except Exception as e:
         return {"status": "error", "message": str(e)}

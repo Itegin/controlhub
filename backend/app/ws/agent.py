@@ -3,6 +3,7 @@ import os
 
 from fastapi import WebSocket, WebSocketDisconnect
 
+from app.agent_requests import resolve_future
 from app.pending import resolve
 from app.state import update_state
 from app.ws.hub import hub
@@ -43,6 +44,11 @@ async def agent_ws(ws: WebSocket) -> None:
                 # reply — even a late one racing the timer — should always
                 # win over a synthetic "timeout" result.
                 resolve(message.get("req_id"))
+                # Additive third destination: hands the reply back to an HTTP
+                # caller parked on this req_id (see app.agent_requests). A
+                # no-op for every ordinary execute/set_value result, which is
+                # the common case -- nothing above changes because of it.
+                resolve_future(message.get("req_id"), message)
                 await hub.broadcast_to_clients(message)
             elif message.get("type") == "state":
                 # Agents all send the same generic keys ("mic.muted",
