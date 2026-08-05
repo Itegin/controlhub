@@ -13,7 +13,25 @@ html, body {
   min-height: 0;
 }
 
+/* #grid's rows are 1fr, which divides *available* height -- so it needs a
+   height of its own or every row computes to 0px and the tiles collapse
+   into an overlapping band. #workspace-header has no fixed height, so
+   rather than hardcoding one, body becomes a flex column and #grid takes
+   whatever the header leaves. (The only other body child, .context-overlay,
+   is position:fixed, so it stays out of this flex flow.) */
+body {
+  display: flex;
+  flex-direction: column;
+}
+
 #grid {
+  /* flex:1 claims the space below the header; min-height:0 is what lets it
+     actually be that size -- a flex item's default min-height:auto refuses
+     to shrink below its content, which reintroduces the content-sized
+     behaviour this rule exists to replace (and .tile's container-type:size
+     means that content now measures as nothing anyway). */
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(var(--cols, 3), 1fr);
   grid-template-rows: repeat(var(--rows, 5), 1fr);
