@@ -148,11 +148,16 @@ def fixup_mic_item() -> None:
 
 
 def fixup_volume_item() -> None:
-    # Unlike Camera -> Mic, 'Volume' keeps its label across every run, so
-    # this UPDATE matches (and reapplies identical values) on every startup
-    # forever -- same always-on pattern as fixup_legacy_seed()'s 'Terminal'
-    # match, not the one-shot pattern above. Harmless, but it also means a
-    # manual DB edit to this row's columns won't survive a restart.
+    # Unlike Camera -> Mic, 'Volume' keeps its label across every run, so a
+    # bare `WHERE label = 'Volume'` would match (and reapply identical
+    # values) on every startup forever. That was tolerable while db.py was
+    # the only writer, but Studio Mode now edits these same columns through
+    # PUT /api/items/{id} -- an always-on reapply silently reverted every
+    # Studio change to this row (target, params, placement) on the next
+    # container restart. Guarded on the pre-migration type instead, the
+    # same way fixup_audio_switch_state_key() guards on state_key IS NULL:
+    # the seeded row starts as type='run', so this still fires once on an
+    # unmigrated install and never touches the row again afterwards.
     conn = get_connection()
     try:
         conn.execute(
@@ -165,7 +170,7 @@ def fixup_volume_item() -> None:
                 width = 2,
                 row = 2,
                 col = 0
-            WHERE label = 'Volume'
+            WHERE label = 'Volume' AND type <> 'audio_volume_set'
             """
         )
         conn.commit()
