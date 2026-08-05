@@ -36,6 +36,14 @@ SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}/ws/agent"
 MAX_BACKOFF = 30
 SINGLETON_MUTEX_NAME = "Global\\ITDeckAgentSingleton"
 
+
+def handle_agent_shutdown(params: dict) -> dict:
+    # No-op on purpose: the actual exit happens in _receive_loop once this
+    # "ok" has gone out. Exiting from here would kill the process before the
+    # result frame is written, leaving the req_id unresolved forever.
+    return {"status": "ok"}
+
+
 HANDLERS = {
     "launch_app": handle_launch_app,
     "audio_mute_toggle": handle_audio_mute_toggle,
@@ -45,6 +53,7 @@ HANDLERS = {
     "screenshot": handle_screenshot,
     "process_toggle": handle_process_toggle,
     "force_stop": handle_force_stop,
+    "agent_shutdown": handle_agent_shutdown,
 }
 
 
@@ -81,6 +90,15 @@ async def _receive_loop(ws) -> None:
             "item_id": message.get("item_id"),
             **result,
         }))
+
+        if cmd == "agent_shutdown":
+            # Brief pause so the "ok" above actually reaches the wire before
+            # we go. os._exit() rather than sys.exit()/returning cleanly:
+            # anything unwinding through run() lands back in main()'s
+            # reconnect loop, which would immediately reconnect the agent we
+            # were just asked to shut down.
+            await asyncio.sleep(0.2)
+            os._exit(0)
 
 
 async def run() -> None:
