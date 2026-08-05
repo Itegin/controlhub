@@ -1,6 +1,12 @@
 const tbody = document.getElementById("items-tbody");
 const form = document.getElementById("item-form");
 const paramsError = document.getElementById("params-error");
+const devicesMessage = document.getElementById("devices-message");
+
+const deviceLabels = {
+  primary: document.getElementById("primary-device-label"),
+  secondary: document.getElementById("secondary-device-label"),
+};
 
 const fields = {
   id: document.getElementById("field-id"),
@@ -20,7 +26,25 @@ const fields = {
   width: document.getElementById("field-width"),
   height: document.getElementById("field-height"),
   params: document.getElementById("field-params"),
+  primaryDevice: document.getElementById("field-primary-device"),
+  secondaryDevice: document.getElementById("field-secondary-device"),
 };
+
+const AUDIO_SWITCH_TYPE = "audio_switch";
+
+// The two params keys the device pickers write. Named after the env vars
+// handle_audio_switch (agents/windows/handlers/audio.py) actually reads:
+// today it reads OUTPUT_DEVICE_PRIMARY/SECONDARY from os.getenv() only and
+// has no per-item params path at all, so nothing consumes these keys yet.
+// Teaching the agent to prefer params over .env is a deliberate follow-up;
+// no Windows agent file is touched by this change.
+const PRIMARY_PARAM = "output_device_primary";
+const SECONDARY_PARAM = "output_device_secondary";
+
+// Bumped on every load and on every hide/close, so a slow reply for a Target
+// (or a Type) the user has since moved away from can't repopulate the
+// dropdowns with the wrong agent's devices.
+let deviceRequestSeq = 0;
 
 // Used to pre-select the workspace picker for new items -- whichever
 // workspace loaded first (position=0, i.e. "Home" today).
@@ -104,8 +128,157 @@ function parseParamsLoosely(paramsString) {
   }
 }
 
+function isAudioSwitch() {
+  return fields.type.value.trim() === AUDIO_SWITCH_TYPE;
+}
+
+function setDevicesMessage(text, isError) {
+  devicesMessage.textContent = text;
+  devicesMessage.classList.toggle("error", Boolean(isError));
+  devicesMessage.hidden = !text;
+}
+
+function currentDeviceSelection() {
+  return {
+    primary: fields.primaryDevice.value,
+    secondary: fields.secondaryDevice.value,
+  };
+}
+
+// devicesLoaded=false is the pre-load/failed state: `devices` being empty
+// then means "no list to compare against", not "the agent doesn't have it",
+// and the saved option is labelled accordingly.
+function populateDeviceSelect(select, devices, selectedId, devicesLoaded = true) {
+  select.innerHTML = "";
+
+  const noneOption = document.createElement("option");
+  noneOption.value = "";
+  noneOption.textContent = "— none —";
+  select.appendChild(noneOption);
+
+  for (const device of devices) {
+    const option = document.createElement("option");
+    // The value is SoundVolumeView's "Command-Line Friendly ID" verbatim --
+    // the exact string /SwitchDefault expects. Never shortened or parsed.
+    option.value = device.id;
+    // Name alone is not a unique label: two endpoints on the same machine
+    // can both be called "Микрофон", so the direction is part of the label,
+    // not decoration.
+    option.textContent = `${device.name} (${device.direction})`;
+    select.appendChild(option);
+  }
+
+  // A saved ID can be absent from the list -- device unplugged, or the item
+  // was configured against a different agent. Show it as a selected option
+  // rather than letting select.value silently fall back to "none", which
+  // would read as "never configured" and quietly drop the ID on save.
+  if (selectedId && !devices.some((device) => device.id === selectedId)) {
+    const missing = document.createElement("option");
+    missing.value = selectedId;
+    missing.textContent = devicesLoaded
+      ? `${selectedId} (not in this agent's list)`
+      : `${selectedId} (saved)`;
+    select.appendChild(missing);
+  }
+
+  select.value = selectedId || "";
+}
+
+async function loadDevices(target, selected) {
+  const seq = ++deviceRequestSeq;
+  setDevicesMessage("Loading devices…", false);
+
+  // Clear to just the saved selection up front: whatever the previous Target
+  // returned is wrong for this one, and every failure path below leaves the
+  // pickers in this state -- empty but usable, per the "must not block the
+  // rest of the form" requirement.
+  populateDeviceSelect(fields.primaryDevice, [], selected.primary, false);
+  populateDeviceSelect(fields.secondaryDevice, [], selected.secondary, false);
+
+  let response;
+  try {
+    response = await fetch(`/api/agents/${encodeURIComponent(target)}/list_devices`, {
+      method: "POST",
+      headers: { "X-Agent-Token": getAgentToken() },
+    });
+  } catch (err) {
+    if (seq !== deviceRequestSeq) {
+      return;
+    }
+    setDevicesMessage(`Could not load devices: ${err.message}`, true);
+    return;
+  }
+
+  if (seq !== deviceRequestSeq) {
+    return;
+  }
+
+  if (!response.ok) {
+    // 404 = agent offline, 504 = agent didn't answer inside the backend's 5s
+    // budget, 401 = missing/wrong token. The endpoint's `detail` already
+    // phrases each of these for a human ("agent offline").
+    const error = await response.json().catch(() => ({}));
+    setDevicesMessage(
+      `Could not load devices: ${error.detail || `HTTP ${response.status}`}`,
+      true,
+    );
+    return;
+  }
+
+  const result = await response.json();
+  if (seq !== deviceRequestSeq) {
+    return;
+  }
+
+  // A 200 still carries the agent's own outcome: the endpoint returns the
+  // agent's reply verbatim, so SoundVolumeView failing on a live, responsive
+  // agent arrives here as {"status": "error"} with HTTP 200.
+  if (result.status !== "ok") {
+    setDevicesMessage(`Could not load devices: ${result.message || "agent reported an error"}`, true);
+    return;
+  }
+
+  // Render only: handle_audio_switch drives `/SwitchDefault primary secondary
+  // 0`, and that trailing 0 is the render/multimedia role -- a capture
+  // endpoint is not a valid choice for it, so inputs are filtered out rather
+  // than offered and left to fail at execute time.
+  const outputs = (result.devices || []).filter((device) => device.direction === "Render");
+  populateDeviceSelect(fields.primaryDevice, outputs, selected.primary);
+  populateDeviceSelect(fields.secondaryDevice, outputs, selected.secondary);
+
+  setDevicesMessage(outputs.length ? "" : "This agent reported no output devices.", false);
+}
+
+// Shows/hides via the .hidden property, the same idiom form/paramsError
+// already use on this page, rather than a new class or style toggle.
+function syncDeviceFields(selected) {
+  const show = isAudioSwitch() && Boolean(fields.target.value);
+  deviceLabels.primary.hidden = !show;
+  deviceLabels.secondary.hidden = !show;
+
+  if (!show) {
+    deviceRequestSeq++;
+    setDevicesMessage("", false);
+    // Cleared, not merely hidden. Only loadDevices resets these selects, and
+    // it doesn't run on this branch -- so without this they keep the
+    // previously edited item's options and selected IDs. Editing a plain
+    // item's Type into "audio_switch" afterwards would then read those stale
+    // IDs back out via currentDeviceSelection() and save another item's
+    // devices into this one's params.
+    populateDeviceSelect(fields.primaryDevice, [], "", false);
+    populateDeviceSelect(fields.secondaryDevice, [], "", false);
+    return;
+  }
+
+  loadDevices(fields.target.value, selected);
+}
+
 function openForm(item) {
   paramsError.hidden = true;
+
+  // Carried down to syncDeviceFields rather than assigned to the selects
+  // here: the <option>s don't exist until the agent's device list arrives.
+  let savedDevices = { primary: "", secondary: "" };
 
   if (item) {
     fields.id.value = item.id;
@@ -142,6 +315,10 @@ function openForm(item) {
     // that was already rendering, so untouched items stay visually
     // identical even though false_color now has a concrete value in params.
     fields.falseColor.value = existingParams.false_color || item.color || "#2a2f38";
+    savedDevices = {
+      primary: existingParams[PRIMARY_PARAM] || "",
+      secondary: existingParams[SECONDARY_PARAM] || "",
+    };
   } else {
     form.reset();
     fields.id.value = "";
@@ -156,11 +333,18 @@ function openForm(item) {
   }
 
   form.hidden = false;
+  // After form.hidden = false, so "Loading devices…" lands on a form the
+  // user can already see.
+  syncDeviceFields(savedDevices);
 }
 
 function closeForm() {
   form.hidden = true;
   paramsError.hidden = true;
+  // Same reason syncDeviceFields bumps it: a reply still in flight when the
+  // form closes must not populate it for whatever item is opened next.
+  deviceRequestSeq++;
+  setDevicesMessage("", false);
 }
 
 async function deleteItem(item) {
@@ -218,6 +402,14 @@ document.getElementById("new-item-btn").addEventListener("click", () => openForm
 document.getElementById("compact-btn").addEventListener("click", compactLayout);
 document.getElementById("cancel-btn").addEventListener("click", closeForm);
 
+// Type is a free-text input, not a select, so "input" is the event that
+// catches it -- the pickers appear the moment the typed value reaches
+// "audio_switch" exactly, and hide again on the next keystroke past it.
+// Both handlers keep whatever is currently picked as the selection to
+// restore, so re-resolving against a new Target doesn't discard it.
+fields.type.addEventListener("input", () => syncDeviceFields(currentDeviceSelection()));
+fields.target.addEventListener("change", () => syncDeviceFields(currentDeviceSelection()));
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -237,6 +429,22 @@ form.addEventListener("submit", async (event) => {
   paramsObj.active_color = fields.activeColor.value;
   paramsObj.alert_color = fields.alertColor.value;
   paramsObj.false_color = fields.falseColor.value;
+
+  // Written only for audio_switch, and only when something is actually
+  // selected. Unlike the color pickers above, an empty value here means
+  // "unknown", not "none": if the device list failed to load (agent
+  // offline), both selects are empty, and assigning unconditionally would
+  // erase IDs the item already had. Clearing a device ID deliberately is
+  // still possible by deleting the key in the raw params textarea.
+  if (isAudioSwitch()) {
+    if (fields.primaryDevice.value) {
+      paramsObj[PRIMARY_PARAM] = fields.primaryDevice.value;
+    }
+    if (fields.secondaryDevice.value) {
+      paramsObj[SECONDARY_PARAM] = fields.secondaryDevice.value;
+    }
+  }
+
   const paramsValue = JSON.stringify(paramsObj);
 
   const body = {

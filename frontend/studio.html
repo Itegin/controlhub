@@ -88,6 +88,25 @@
       display: none;
     }
 
+    /* Exactly the same specificity trap as #item-form[hidden] above, one
+       level down: #item-form label's display:flex outranks the UA [hidden]
+       rule, so the audio_switch device pickers would stay visible for every
+       other Type without this. #devices-message needs no such rule (like
+       #params-error, no ID selector sets its display). */
+    #item-form label[hidden] {
+      display: none;
+    }
+
+    #devices-message {
+      grid-column: 1 / -1;
+      font-size: 13px;
+      color: #9aa3b2;
+    }
+
+    #devices-message.error {
+      color: #dc2626;
+    }
+
     #item-form label {
       display: flex;
       flex-direction: column;
@@ -206,6 +225,20 @@
         <option value="RINA-PC">RINA-PC</option>
       </select>
     </label>
+
+    <!-- audio_switch only: studio.js shows/hides these (and the message
+         below) as Type/Target change, and fills them from the selected
+         Target agent's live device list. Hidden by default so a fresh form
+         for any other Type never flashes them. -->
+    <label id="primary-device-label" hidden>Primary device
+      <select id="field-primary-device"></select>
+    </label>
+
+    <label id="secondary-device-label" hidden>Secondary device
+      <select id="field-secondary-device"></select>
+    </label>
+
+    <div id="devices-message" hidden></div>
 
     <label>State key
       <input id="field-state-key" placeholder="optional, e.g. mic.muted">
