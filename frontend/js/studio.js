@@ -50,9 +50,14 @@ const SECONDARY_PARAM = "output_device_secondary";
 // dropdowns with the wrong agent's devices.
 let deviceRequestSeq = 0;
 
-// Used to pre-select the workspace picker for new items -- whichever
-// workspace loaded first (position=0, i.e. "Home" today).
+// Fallback only. New items follow compactWorkspaceSelect (i.e. whatever the
+// table is currently filtered to); this is what's used before that picker has
+// a value -- whichever workspace loaded first (position=0, i.e. "Home" today).
 let defaultWorkspaceId = null;
+
+// Last /api/workspaces response, kept so switching the workspace filter can
+// re-render the table from memory instead of refetching.
+let allWorkspaces = [];
 
 // Studio Mode has no login UI, so the agent token is collected once via a
 // plain prompt() and kept in memory only for the rest of this page load --
@@ -72,13 +77,28 @@ async function loadItems() {
   const response = await fetch("/api/workspaces");
   const workspaces = await response.json();
   defaultWorkspaceId = workspaces[0] ? workspaces[0].id : null;
+  allWorkspaces = workspaces;
   populateWorkspaceSelect(workspaces);
+  // Before renderFilteredTable(), which reads the picker's live value to
+  // decide what to show.
   populateCompactWorkspaceSelect(workspaces);
+  renderFilteredTable();
+}
+
+// The table shows one workspace at a time -- the one the toolbar picker is
+// on. Reads allWorkspaces, never refetches, so switching the picker is
+// instant. Falls back to the first workspace when the picker has no value
+// yet, the same default populateWorkspaceSelect/defaultWorkspaceId use.
+function renderFilteredTable() {
+  const selected = compactWorkspaceSelect.value;
+  // String() on both sides for the same reason populateCompactWorkspaceSelect
+  // does it: workspace.id is a number, a select's value is always a string.
+  const workspace =
+    allWorkspaces.find((candidate) => String(candidate.id) === selected) || allWorkspaces[0];
   // Kept as the raw params string here (unlike the dashboard's
   // fetchWorkspaces in api.js, which parses it) -- the form's textarea
   // and the CRUD endpoints both want the JSON string form directly.
-  const items = workspaces.flatMap((workspace) => workspace.items);
-  renderTable(items);
+  renderTable(workspace ? workspace.items : []);
 }
 
 function populateWorkspaceSelect(workspaces) {
@@ -346,7 +366,12 @@ function openForm(item) {
   } else {
     form.reset();
     fields.id.value = "";
-    fields.workspaceId.value = defaultWorkspaceId ?? "";
+    // The workspace the table is currently filtered to, not whichever one
+    // loaded first: with filtering on, a new item defaulting to a workspace
+    // the user isn't looking at would save and then immediately vanish from
+    // the table. Safe to read after form.reset() -- the picker lives in the
+    // toolbar, outside #item-form, so reset() doesn't touch it.
+    fields.workspaceId.value = compactWorkspaceSelect.value || (defaultWorkspaceId ?? "");
     fields.color.value = "#2a2f38";
     fields.activeColor.value = "#0d9488";
     fields.alertColor.value = "#dc2626";
@@ -429,6 +454,11 @@ async function compactLayout() {
 document.getElementById("new-item-btn").addEventListener("click", () => openForm(null));
 document.getElementById("compact-btn").addEventListener("click", compactLayout);
 document.getElementById("cancel-btn").addEventListener("click", closeForm);
+
+// Re-filters from allWorkspaces, no server round-trip. No risk of double
+// rendering from populateCompactWorkspaceSelect's own `.value =`: assigning
+// value programmatically doesn't fire "change".
+compactWorkspaceSelect.addEventListener("change", renderFilteredTable);
 
 // Type is a free-text input, not a select, so "input" is the event that
 // catches it -- the pickers appear the moment the typed value reaches
