@@ -182,7 +182,40 @@ async function deleteItem(item) {
   await loadItems();
 }
 
+async function compactLayout() {
+  const workspaceId = fields.workspaceId.value;
+  if (!workspaceId) {
+    return;
+  }
+  // The picker lives inside the (usually hidden) item form, so name the
+  // workspace in the prompt -- the user is authorizing a non-undoable
+  // rewrite of a target they can't necessarily see on screen.
+  const workspaceName = fields.workspaceId.selectedOptions[0]?.textContent || workspaceId;
+  if (!confirm(`Repack all tiles in "${workspaceName}" into the top-left? This rewrites their positions and can't be undone.`)) {
+    return;
+  }
+  const response = await fetch(`/api/workspaces/${workspaceId}/compact`, {
+    method: "POST",
+    headers: { "X-Agent-Token": getAgentToken() },
+  });
+  if (!response.ok) {
+    // Same handling as deleteItem(): a bad token (401) or missing
+    // workspace (404) must surface, not silently reload as if it worked.
+    const error = await response.json().catch(() => ({}));
+    alert(`Compact failed (${response.status}): ${error.detail || "unknown error"}`);
+    return;
+  }
+  // Same close-then-reload order as the submit handler. Mandatory here, not
+  // cosmetic: an open form still holds the item's pre-compact row/col (and
+  // loadItems() rebuilds the workspace <select>, resetting it to the first
+  // option), so a Save afterwards would push the item back out of the packed
+  // layout and into whichever workspace the reset dropdown landed on.
+  closeForm();
+  await loadItems();
+}
+
 document.getElementById("new-item-btn").addEventListener("click", () => openForm(null));
+document.getElementById("compact-btn").addEventListener("click", compactLayout);
 document.getElementById("cancel-btn").addEventListener("click", closeForm);
 
 form.addEventListener("submit", async (event) => {

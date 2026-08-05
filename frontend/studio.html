@@ -62,7 +62,11 @@
       border-color: #dc2626;
     }
 
-    #new-item-btn {
+    /* Same flex row idiom as #item-form .form-actions -- two bare adjacent
+       buttons otherwise sit almost flush against each other. */
+    .toolbar {
+      display: flex;
+      gap: 8px;
       margin-bottom: 16px;
     }
 
@@ -135,7 +139,10 @@
     <a href="/index.html">&larr; Dashboard</a>
   </header>
 
-  <button id="new-item-btn" type="button">+ New Item</button>
+  <div class="toolbar">
+    <button id="new-item-btn" type="button">+ New Item</button>
+    <button id="compact-btn" type="button">Compact layout</button>
+  </div>
 
   <table>
     <thead>
