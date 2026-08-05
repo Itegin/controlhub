@@ -10,4 +10,8 @@ if not exist "%USERPROFILE%\Desktop\IT-Deck Agent.lnk" (
 )
 
 python agent.py
-pause
+if %ERRORLEVEL% EQU 0 (
+    exit
+) else (
+    pause
+)
