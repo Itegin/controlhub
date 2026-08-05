@@ -70,6 +70,20 @@
       margin-bottom: 16px;
     }
 
+    /* #item-form select doesn't reach the toolbar's own workspace picker, and
+       an unstyled select renders as an OS-default light control on this dark
+       page. Same field colors as the form's inputs, but the button's padding
+       and font-size so it sits level with the two buttons in the flex row. */
+    .toolbar select {
+      background: #0B0D10;
+      color: #F1F5F9;
+      border: 1px solid #2a2f38;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
     #item-form {
       background: #1A1F26;
       border: 1px solid #2a2f38;
@@ -161,6 +175,11 @@
   <div class="toolbar">
     <button id="new-item-btn" type="button">+ New Item</button>
     <button id="compact-btn" type="button">Compact layout</button>
+    <!-- Compact's own target, deliberately outside #item-form: reading the
+         form's workspace field meant Compact silently hit whatever that
+         hidden dropdown happened to hold, which is only correct for the
+         workspace whose item was edited most recently. -->
+    <select id="compact-workspace-select"></select>
   </div>
 
   <table>

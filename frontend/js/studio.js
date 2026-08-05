@@ -2,6 +2,10 @@ const tbody = document.getElementById("items-tbody");
 const form = document.getElementById("item-form");
 const paramsError = document.getElementById("params-error");
 const devicesMessage = document.getElementById("devices-message");
+// Compact layout's target workspace. Kept out of `fields` on purpose --
+// that map is the item-edit form, and this picker exists precisely so
+// Compact no longer depends on it.
+const compactWorkspaceSelect = document.getElementById("compact-workspace-select");
 
 const deviceLabels = {
   primary: document.getElementById("primary-device-label"),
@@ -69,6 +73,7 @@ async function loadItems() {
   const workspaces = await response.json();
   defaultWorkspaceId = workspaces[0] ? workspaces[0].id : null;
   populateWorkspaceSelect(workspaces);
+  populateCompactWorkspaceSelect(workspaces);
   // Kept as the raw params string here (unlike the dashboard's
   // fetchWorkspaces in api.js, which parses it) -- the form's textarea
   // and the CRUD endpoints both want the JSON string form directly.
@@ -83,6 +88,25 @@ function populateWorkspaceSelect(workspaces) {
     option.value = workspace.id;
     option.textContent = workspace.name;
     fields.workspaceId.appendChild(option);
+  }
+}
+
+// Deliberately a separate function from populateWorkspaceSelect rather than a
+// shared helper, so nothing about the item form's own dropdown changes.
+// compactLayout() ends with loadItems(), which lands back here -- so the
+// current pick is captured and restored, otherwise compacting one workspace
+// would silently re-point the picker at the first one for the next press.
+function populateCompactWorkspaceSelect(workspaces) {
+  const previous = compactWorkspaceSelect.value;
+  compactWorkspaceSelect.innerHTML = "";
+  for (const workspace of workspaces) {
+    const option = document.createElement("option");
+    option.value = workspace.id;
+    option.textContent = workspace.name;
+    compactWorkspaceSelect.appendChild(option);
+  }
+  if (previous && workspaces.some((workspace) => String(workspace.id) === previous)) {
+    compactWorkspaceSelect.value = previous;
   }
 }
 
@@ -367,14 +391,18 @@ async function deleteItem(item) {
 }
 
 async function compactLayout() {
-  const workspaceId = fields.workspaceId.value;
+  // Read from the toolbar's own picker, never the item form's -- the form
+  // field only holds a meaningful value once an Edit view has been opened
+  // this page load, so Compact used to target a workspace the user never
+  // chose and had no way to see.
+  const workspaceId = compactWorkspaceSelect.value;
   if (!workspaceId) {
     return;
   }
-  // The picker lives inside the (usually hidden) item form, so name the
-  // workspace in the prompt -- the user is authorizing a non-undoable
-  // rewrite of a target they can't necessarily see on screen.
-  const workspaceName = fields.workspaceId.selectedOptions[0]?.textContent || workspaceId;
+  // Still named in the prompt even though the picker is now visible right
+  // next to the button: this is a non-undoable rewrite, so the dialog says
+  // exactly which workspace is about to be repacked.
+  const workspaceName = compactWorkspaceSelect.selectedOptions[0]?.textContent || workspaceId;
   if (!confirm(`Repack all tiles in "${workspaceName}" into the top-left? This rewrites their positions and can't be undone.`)) {
     return;
   }
