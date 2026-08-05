@@ -1,5 +1,4 @@
 import os
-import subprocess
 from pathlib import Path
 
 import psutil
@@ -35,20 +34,12 @@ def kill_process(name: str) -> None:
 
 def handle_launch_app(params: dict) -> dict:
     try:
-        try:
-            subprocess.Popen(
-                [params["path"]],
-                creationflags=(
-                    subprocess.CREATE_NEW_PROCESS_GROUP
-                    | subprocess.DETACHED_PROCESS
-                    | subprocess.CREATE_BREAKAWAY_FROM_JOB
-                ),
-            )
-        except OSError:
-            subprocess.Popen(
-                [params["path"]],
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
-            )
+        # ShellExecute, not CreateProcess: Popen() cannot raise a UAC prompt,
+        # so an exe whose manifest requires admin (v2rayTun) failed silently --
+        # command received, no crash, app never opened. os.startfile() is the
+        # same call Explorer's double-click uses, so Windows shows its own
+        # elevation prompt; a normal exe launches exactly as before.
+        os.startfile(params["path"])
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
