@@ -30,8 +30,14 @@ export function renderWorkspace(workspace, onTileClick, onSliderChange, onTileLo
     tile.className = "tile";
     tile.dataset.itemId = item.id;
     tile.dataset.kind = item.kind;
+    // Which agent owns this tile -- read by setAgentOffline() so one agent
+    // going offline only greys out its own tiles.
+    tile.dataset.target = item.target;
     if (item.state_key) {
-      tile.dataset.stateKey = item.state_key;
+      // Namespaced with the owning agent's name to match the keys the
+      // backend broadcasts (see backend/app/ws/agent.py) -- multiple agents
+      // report the same generic state keys, so the bare key is ambiguous.
+      tile.dataset.stateKey = `${item.target}:${item.state_key}`;
     }
     // Explicit per-item styling choice (teal "active" vs red "alert"),
     // read from the DB row instead of guessed from the state key's name.
@@ -210,11 +216,13 @@ export function renderWorkspaceSelector(workspaces, onSelect) {
   });
 }
 
-export function setAgentOffline(isOffline) {
-  // Only one agent exists today, so "every actionable tile" and "this
-  // agent's tiles" are the same set -- revisit with a target-aware
-  // selector (matching item.target) once a second agent exists.
-  const tiles = document.querySelectorAll('.tile[data-kind="action"]');
+export function setAgentOffline(agent, isOffline) {
+  // Scoped to the agent named in the agent_status message: with more than
+  // one agent connected, one disconnecting must not grey out the other's
+  // tiles. data-target is set from item.target when the tile is rendered.
+  const tiles = document.querySelectorAll(
+    `.tile[data-kind="action"][data-target="${CSS.escape(agent)}"]`
+  );
   for (const tile of tiles) {
     tile.classList.toggle("tile-offline", isOffline);
   }

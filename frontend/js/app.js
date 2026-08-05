@@ -82,7 +82,7 @@ document.getElementById("switch-workspace-link").addEventListener("click", (even
 onResult((result) => console.log("result:", result));
 
 onStateChange((data) => updateTileState(data));
-onAgentStatus(({ status }) => setAgentOffline(status === "offline"));
+onAgentStatus(({ agent, status }) => setAgentOffline(agent, status === "offline"));
 // Studio Mode edits arrive as a bare signal, not the changed data itself --
 // refetching and fully re-rendering is simplest and cheap enough here
 // (edits are infrequent), same as init()'s own first load.

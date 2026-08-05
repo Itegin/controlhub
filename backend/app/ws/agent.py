@@ -45,7 +45,13 @@ async def agent_ws(ws: WebSocket) -> None:
                 resolve(message.get("req_id"))
                 await hub.broadcast_to_clients(message)
             elif message.get("type") == "state":
-                changed = update_state(message["data"])
+                # Agents all send the same generic keys ("mic.muted",
+                # "speaker.volume", ...), so namespace them with the
+                # reporting agent's name here -- otherwise two connected
+                # agents overwrite each other in the single flat state dict
+                # and every client sees whichever reported last.
+                namespaced = {f"{name}:{key}": value for key, value in message["data"].items()}
+                changed = update_state(namespaced)
                 # Skip the broadcast entirely when nothing changed (e.g. a
                 # heartbeat resending the same value) to avoid spamming clients.
                 if changed:
